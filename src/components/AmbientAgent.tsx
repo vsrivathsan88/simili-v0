@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useSocketIO } from '@/lib/useSocketIO'
 
 interface AmbientAgentProps {
   isActive: boolean
@@ -14,74 +15,81 @@ interface AmbientAgentProps {
 interface ObservationEvent {
   type: 'drawing' | 'manipulative' | 'pause' | 'activity'
   timestamp: number
-  data: any
+  data: Record<string, unknown>
+}
+
+interface GeminiResponse {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{ text?: string }>
+    }
+  }>
 }
 
 const AmbientAgent = ({ isActive, studentContext }: AmbientAgentProps) => {
   const [piState, setPiState] = useState<'observing' | 'thinking' | 'speaking'>('observing')
   const [currentThought, setCurrentThought] = useState<string | null>(null)
   const [isClient, setIsClient] = useState(false)
-  const [isConnected, setIsConnected] = useState(false)
   
   const observationBuffer = useRef<ObservationEvent[]>([])
   const lastInteraction = useRef<number>(Date.now())
-  const wsRef = useRef<WebSocket | null>(null)
-  const reconnectTimeout = useRef<NodeJS.Timeout | null>(null)
+
+  // Socket.IO connection with auto-reconnection and message buffering
+  const { state, sendToGemini, setupGemini, disconnect } = useSocketIO(
+    handleGeminiResponse,
+    handleStatusChange
+  )
   
-  // Initialize client-side and connect to Gemini Live
+  // Handle Gemini Live responses
+  function handleGeminiResponse(data: GeminiResponse) {
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+      const response = data.candidates[0].content.parts?.[0]?.text
+      if (response && response.trim()) {
+        speakThought(response.trim())
+      }
+    }
+  }
+
+  // Handle connection status changes
+  function handleStatusChange(status: string) {
+    console.log(`🔗 Pi connection status: ${status}`)
+    
+    switch (status) {
+      case 'connected':
+        setPiState('observing')
+        break
+      case 'reconnecting':
+        setPiState('thinking')
+        break
+      case 'failed':
+        setPiState('observing')
+        break
+    }
+  }
+
+  // Initialize client-side and setup Gemini Live
   useEffect(() => {
     setIsClient(true)
-    if (isActive) {
-      connectToGeminiLive()
-    }
-    return () => {
-      disconnectFromGeminiLive()
-    }
-  }, [isActive])
-
-  // Connect to Gemini Live WebSocket
-  const connectToGeminiLive = async () => {
-    try {
-      // Get secure WebSocket URL from server
-      const response = await fetch('/api/gemini-live', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'get-websocket-url' })
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to get WebSocket URL')
-      }
-      
-      const { wsUrl } = await response.json()
-      
-      // Create WebSocket connection
-      wsRef.current = new WebSocket(wsUrl)
-      
-      wsRef.current.onopen = () => {
-        console.log('🔮 Pi connected to Gemini Live')
-        setIsConnected(true)
-        setPiState('observing')
-        
-        // Send initial configuration
-        sendGeminiMessage({
-          setup: {
-            model: "gemini-2.0-flash-exp",
-            tools: [
-              {
-                name: "mark_reasoning_step",
-                description: "Mark when student shows mathematical reasoning"
-              },
-              {
-                name: "suggest_gentle_hint", 
-                description: "Provide Socratic guidance when student is stuck"
-              },
-              {
-                name: "celebrate_discovery",
-                description: "Acknowledge student insights and discoveries"
-              }
-            ],
-            systemInstruction: `You are Pi, a warm, patient math tutor for elementary students. 
+    
+    if (isActive && state.isConnected && !state.geminiConnected) {
+      // Setup Gemini Live with Socket.IO
+      setupGemini({
+        model: "gemini-2.0-flash-exp",
+        tools: [
+          {
+            name: "mark_reasoning_step",
+            description: "Mark when student shows mathematical reasoning"
+          },
+          {
+            name: "suggest_gentle_hint", 
+            description: "Provide Socratic guidance when student is stuck"
+          },
+          {
+            name: "celebrate_discovery",
+            description: "Acknowledge student insights and discoveries"
+          }
+        ],
+        systemInstruction: `You are Pi, a warm, patient math tutor for elementary students. 
 
 CORE PRINCIPLES:
 - You are AMBIENT - speak only when genuinely helpful
@@ -103,68 +111,15 @@ TONE:
 - Focus on process over answers
 
 CURRENT CONTEXT: Student is exploring ${studentContext.currentTopic}`
-          }
-        })
-      }
-      
-      wsRef.current.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data)
-          handleGeminiResponse(data)
-        } catch (error) {
-          console.error('Error parsing Gemini response:', error)
-        }
-      }
-      
-      wsRef.current.onclose = () => {
-        console.log('🔮 Pi disconnected, attempting reconnect...')
-        setIsConnected(false)
-        // Reconnect after 3 seconds
-        reconnectTimeout.current = setTimeout(() => {
-          if (isActive) connectToGeminiLive()
-        }, 3000)
-      }
-      
-      wsRef.current.onerror = (error) => {
-        console.error('🚨 Pi WebSocket error:', error)
-        setIsConnected(false)
-      }
-      
-    } catch (error) {
-      console.error('🚨 Failed to connect Pi to Gemini Live:', error)
-      setIsConnected(false)
+      })
     }
-  }
 
-  // Disconnect WebSocket
-  const disconnectFromGeminiLive = () => {
-    if (wsRef.current) {
-      wsRef.current.close()
-      wsRef.current = null
-    }
-    if (reconnectTimeout.current) {
-      clearTimeout(reconnectTimeout.current)
-      reconnectTimeout.current = null
-    }
-    setIsConnected(false)
-  }
-
-  // Send message to Gemini Live
-  const sendGeminiMessage = (message: any) => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message))
-    }
-  }
-
-  // Handle Gemini Live responses
-  const handleGeminiResponse = (data: any) => {
-    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-      const response = data.candidates[0].content.parts[0].text
-      if (response && response.trim()) {
-        speakThought(response.trim())
+    return () => {
+      if (!isActive) {
+        disconnect()
       }
     }
-  }
+  }, [isActive, state.isConnected, state.geminiConnected, studentContext, setupGemini, disconnect])
 
   // Start ambient observation when activated
   useEffect(() => {
@@ -178,13 +133,13 @@ CURRENT CONTEXT: Student is exploring ${studentContext.currentTopic}`
     }, 15000) // Check every 15 seconds
 
     return () => clearInterval(observationCycle)
-  }, [isActive, isClient])
+  }, [isActive, isClient, analyzeRecentActivity])
 
   // Listen for canvas activity
   useEffect(() => {
     if (!isActive || !isClient) return
 
-    const handleDrawing = (event: any) => {
+    const handleDrawing = (event: CustomEvent<Record<string, unknown>>) => {
       addObservation({
         type: 'drawing',
         timestamp: Date.now(),
@@ -192,7 +147,7 @@ CURRENT CONTEXT: Student is exploring ${studentContext.currentTopic}`
       })
     }
 
-    const handleManipulative = (event: any) => {
+    const handleManipulative = (event: CustomEvent<Record<string, unknown>>) => {
       addObservation({
         type: 'manipulative', 
         timestamp: Date.now(),
@@ -200,12 +155,12 @@ CURRENT CONTEXT: Student is exploring ${studentContext.currentTopic}`
       })
     }
 
-    window.addEventListener('simili-drawing-event', handleDrawing)
-    window.addEventListener('simili-manipulative-event', handleManipulative)
+    window.addEventListener('simili-drawing-event', handleDrawing as EventListener)
+    window.addEventListener('simili-manipulative-event', handleManipulative as EventListener)
 
     return () => {
-      window.removeEventListener('simili-drawing-event', handleDrawing)
-      window.removeEventListener('simili-manipulative-event', handleManipulative)
+      window.removeEventListener('simili-drawing-event', handleDrawing as EventListener)
+      window.removeEventListener('simili-manipulative-event', handleManipulative as EventListener)
     }
   }, [isActive, isClient])
 
@@ -219,7 +174,7 @@ CURRENT CONTEXT: Student is exploring ${studentContext.currentTopic}`
   }
 
   // Analyze recent activity and respond appropriately
-  const analyzeRecentActivity = () => {
+  const analyzeRecentActivity = useCallback(() => {
     const now = Date.now()
     const recentEvents = observationBuffer.current.filter(
       event => now - event.timestamp < 30000 // Last 30 seconds
@@ -237,9 +192,9 @@ CURRENT CONTEXT: Student is exploring ${studentContext.currentTopic}`
     const recentManipulative = recentEvents.find(e => e.type === 'manipulative')
     if (recentManipulative) {
       shouldSpeak = true
-      if (isConnected) {
-        // Send context to Gemini Live for AI response
-        sendGeminiMessage({
+      if (state.geminiConnected) {
+        // Send context to Gemini Live for AI response via Socket.IO
+        sendToGemini({
           contents: [{
             parts: [{
               text: `Student just added a ${recentManipulative.data.manipulativeType} to explore. Respond as Pi with a brief, warm question or encouragement (under 15 words).`
@@ -255,8 +210,8 @@ CURRENT CONTEXT: Student is exploring ${studentContext.currentTopic}`
     // Pattern 2: Lots of drawing activity (encourage thinking)
     else if (recentEvents.filter(e => e.type === 'drawing').length >= 3) {
       shouldSpeak = true
-      if (isConnected) {
-        sendGeminiMessage({
+      if (state.geminiConnected) {
+        sendToGemini({
           contents: [{
             parts: [{
               text: `Student is actively drawing and sketching - showing lots of mathematical thinking. Respond as Pi with a brief, encouraging question (under 15 words).`
@@ -271,8 +226,8 @@ CURRENT CONTEXT: Student is exploring ${studentContext.currentTopic}`
     // Pattern 3: Long pause (gentle check-in)
     else if (recentEvents.length === 0 && Math.random() > 0.8) {
       shouldSpeak = true
-      if (isConnected) {
-        sendGeminiMessage({
+      if (state.geminiConnected) {
+        sendToGemini({
           contents: [{
             parts: [{
               text: `Student has been quiet for a while. Respond as Pi with a gentle, warm check-in question (under 15 words).`
@@ -288,7 +243,7 @@ CURRENT CONTEXT: Student is exploring ${studentContext.currentTopic}`
     if (shouldSpeak && message) {
       speakThought(message)
     }
-  }
+  }, [state.geminiConnected, sendToGemini])
 
   // Local fallback messages when Gemini Live is not connected
   const getLocalManipulativeMessage = (toolType: string) => {
@@ -415,7 +370,9 @@ CURRENT CONTEXT: Student is exploring ${studentContext.currentTopic}`
         <div className="mt-2 text-xs text-gray-500 text-center">
           Observations: {observationBuffer.current.length} | 
           State: {piState} |
-          Active: {isConnected ? '✓' : '✗'}
+          Socket: {state.isConnected ? '✓' : '✗'} |
+          Gemini: {state.geminiConnected ? '✓' : '✗'}
+          {state.reconnectAttempts > 0 && ` | Retries: ${state.reconnectAttempts}`}
         </div>
       )}
     </div>
