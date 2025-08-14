@@ -130,7 +130,7 @@ export default function TeacherView() {
           <div className="h-full p-6">
             <div className="h-full bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="font-semibold text-gray-800 mb-6">Student Progress Overview</h3>
-              <ProgressDashboard />
+              <ProgressDashboard isOpen={true} onClose={() => {}} />
             </div>
           </div>
         )}
