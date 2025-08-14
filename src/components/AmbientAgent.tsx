@@ -34,6 +34,7 @@ const AmbientAgent = ({ isActive, studentContext }: AmbientAgentProps) => {
   
   const observationBuffer = useRef<ObservationEvent[]>([])
   const lastInteraction = useRef<number>(Date.now())
+  const outageUntilRef = useRef<number>(0)
 
   // Socket.IO connection with auto-reconnection and message buffering
   const { state, sendToGemini, sendCanvasUpdate, setupGemini, connect, disconnect } = useSocketIO(
@@ -164,6 +165,27 @@ CURRENT CONTEXT: Student is exploring ${studentContext.currentTopic}`,
     }
   }, [isActive, state.isConnected, state.geminiConnected, setupGemini, connect, disconnect])
 
+  // Sync backoff between components
+  useEffect(() => {
+    const handleBackoff = (e: any) => {
+      const until = Number(e?.detail?.until || 0)
+      if (until > Date.now()) {
+        outageUntilRef.current = until
+        console.log('simili:tutor:throttle', { reason: 'backoff-sync', until })
+      }
+    }
+    window.addEventListener('simili-tutor-backoff', handleBackoff as EventListener)
+    return () => window.removeEventListener('simili-tutor-backoff', handleBackoff as EventListener)
+  }, [])
+
+  const beginBackoff = useCallback((reason: string) => {
+    const until = Date.now() + 60_000
+    outageUntilRef.current = until
+    console.log('simili:tutor:throttle', { reason, until })
+    window.dispatchEvent(new CustomEvent('simili-tutor-backoff', { detail: { until } }))
+    speakThought("I'm having trouble reaching Gemini. Keep exploring—I’ll chime in soon.")
+  }, [])
+
   // Analyze recent activity and respond appropriately
   const analyzeRecentActivity = useCallback(() => {
     const now = Date.now()
@@ -187,6 +209,10 @@ CURRENT CONTEXT: Student is exploring ${studentContext.currentTopic}`,
     }
     if (!context) return
 
+    if (Date.now() < outageUntilRef.current) {
+      console.log('simili:tutor:throttle', { reason: 'backoff-window', until: outageUntilRef.current })
+      return
+    }
     console.log('simili:tutor:request', { trigger: 'analyzeRecentActivity', context, ts: now })
     fetch('/api/gemini-text', {
       method: 'POST',
@@ -201,15 +227,19 @@ CURRENT CONTEXT: Student is exploring ${studentContext.currentTopic}`,
     }).then(async r => {
       if (!r.ok) {
         console.log('simili:tutor:error', { status: r.status, statusText: r.statusText, ts: Date.now() })
+        beginBackoff(`http_${r.status}`)
         return
       }
       const { text } = await r.json()
       if (text && typeof text === 'string' && text.trim()) {
         console.log('simili:tutor:response', { source: 'gemini-text', text: text.trim(), ts: Date.now() })
         speakThought(text.trim())
+      } else {
+        beginBackoff('empty_text')
       }
     }).catch(e => {
       console.log('simili:tutor:error', { error: e instanceof Error ? e.message : String(e), ts: Date.now() })
+      beginBackoff('network_error')
     })
   }, [studentContext.currentTopic])
 
@@ -245,6 +275,10 @@ CURRENT CONTEXT: Student is exploring ${studentContext.currentTopic}`,
         const suppressWhenBubble = process.env.NEXT_PUBLIC_TUTOR_SUPPRESS_WHEN_BUBBLE !== 'false'
         if (suppressWhenBubble && currentThought) return
         if (now - lastInteraction.current < Number(process.env.NEXT_PUBLIC_TUTOR_MIN_GAP_MS ?? 15000)) return
+        if (Date.now() < outageUntilRef.current) {
+          console.log('simili:tutor:throttle', { reason: 'backoff-window', until: outageUntilRef.current })
+          return
+        }
         console.log('simili:tutor:request', {
           trigger: 'drawing',
           topic: studentContext.currentTopic,
@@ -274,6 +308,8 @@ CURRENT CONTEXT: Student is exploring ${studentContext.currentTopic}`,
               ts: Date.now()
             })
             speakThought(text.trim())
+          } else {
+            beginBackoff('empty_text')
           }
         } else {
           console.log('simili:tutor:error', {
@@ -281,12 +317,14 @@ CURRENT CONTEXT: Student is exploring ${studentContext.currentTopic}`,
             statusText: res.statusText,
             ts: Date.now()
           })
+          beginBackoff(`http_${res.status}`)
         }
       } catch (e) {
         console.log('simili:tutor:error', {
           error: e instanceof Error ? e.message : String(e),
           ts: Date.now()
         })
+        beginBackoff('network_error')
       }
     }
 

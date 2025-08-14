@@ -6,7 +6,7 @@ import { photoStore } from '../store'
 
 export async function POST(request: NextRequest) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY
+    const apiKey = (process.env.GEMINI_API_KEY || '').trim()
     if (!apiKey) {
       return NextResponse.json({ error: 'Gemini API key not configured' }, { status: 500 })
     }
