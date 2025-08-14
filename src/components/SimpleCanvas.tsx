@@ -396,6 +396,45 @@ const SimpleCanvas = ({ onPathsChange, onShapeDetected }: SimpleCanvasProps) => 
     onPathsChangeRef.current?.(paths.length > 0)
   }, [paths.length]) // Remove onPathsChange from deps to prevent infinite loop
 
+  // Keyboard shortcuts (non-visual): P (pen), E (eraser), V (pointer), I (insert tool), Cmd/Ctrl+Z (undo), Cmd/Ctrl+Shift+Z (redo)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isInput = (e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA'
+      if (isInput) return
+      // Undo / Redo
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) {
+          redo()
+        } else {
+          undo()
+        }
+        return
+      }
+      // Tool shortcuts
+      if (e.key.toLowerCase() === 'p') {
+        setToolMode('pencil')
+        setDrawingTool('pen')
+        return
+      }
+      if (e.key.toLowerCase() === 'e') {
+        setToolMode('pencil')
+        setDrawingTool('eraser')
+        return
+      }
+      if (e.key.toLowerCase() === 'v') {
+        setToolMode('pointer')
+        return
+      }
+      if (e.key.toLowerCase() === 'i') {
+        setShowManipulativeMenu(true)
+        return
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [undo, redo])
+
   const handleInsert = useCallback(() => {
     setShowManipulativeMenu(true)
   }, [])
