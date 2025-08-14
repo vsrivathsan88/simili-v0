@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import rough from 'roughjs/bundled/rough.esm.js'
 import { designSystem } from '@/lib/design'
+import { useSessionManager, type ReasoningStepRecord, type ReasoningPhase } from '@/lib/sessionManager'
 
 interface ReasoningStep {
   id: string
@@ -34,6 +35,7 @@ const ReasoningMap = ({ className = '', isVisible }: ReasoningMapProps) => {
 
   // Listen for reasoning steps from Gemini Live
   useEffect(() => {
+    const { addReasoningStepToCurrent, tagReasoningStep } = useSessionManager()
     const handleReasoningStep = (event: CustomEvent) => {
       const step: ReasoningStep = event.detail
       
@@ -42,6 +44,17 @@ const ReasoningMap = ({ className = '', isVisible }: ReasoningMapProps) => {
       const stepWithPosition = { ...step, position }
       
       setSteps(prev => [...prev, stepWithPosition])
+
+      // Persist minimal record to session current problem
+      const record: ReasoningStepRecord = {
+        id: step.id,
+        timestamp: step.timestamp,
+        transcript: step.transcript,
+        classification: step.classification,
+        concepts: step.concepts,
+        confidence: step.confidence
+      }
+      addReasoningStepToCurrent(record)
       
       // Celebrate incorrect steps (learning opportunities!)
       if (step.classification === 'incorrect') {
@@ -58,12 +71,19 @@ const ReasoningMap = ({ className = '', isVisible }: ReasoningMapProps) => {
       // For now, just log - future enhancement would show visual celebration
     }
 
+    const handleTag = (event: CustomEvent) => {
+      const { stepId, phase, tags } = event.detail as { stepId: string; phase?: ReasoningPhase; tags?: string[] }
+      tagReasoningStep(stepId, phase, tags)
+    }
+
     window.addEventListener('simili-reasoning-step', handleReasoningStep as EventListener)
     window.addEventListener('simili-celebration', handleCelebration as EventListener)
+    window.addEventListener('simili-tag-reasoning-step', handleTag as EventListener)
 
     return () => {
       window.removeEventListener('simili-reasoning-step', handleReasoningStep as EventListener)
       window.removeEventListener('simili-celebration', handleCelebration as EventListener)
+      window.removeEventListener('simili-tag-reasoning-step', handleTag as EventListener)
     }
   }, [steps.length])
 

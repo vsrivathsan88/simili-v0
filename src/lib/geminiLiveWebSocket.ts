@@ -243,6 +243,27 @@ Remember: Your goal is to help students discover mathematical understanding thro
             }
           },
           {
+            name: 'tag_reasoning_step',
+            description: 'Tag a previously recorded reasoning step with a phase and optional tags',
+            parameters: {
+              type: 'object',
+              properties: {
+                stepId: { type: 'string', description: 'ID returned by mark_reasoning_step' },
+                phase: {
+                  type: 'string',
+                  enum: ['hypothesis', 'evidence', 'revision', 'check'],
+                  description: 'Reasoning phase for the step'
+                },
+                tags: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'Additional free-form tags'
+                }
+              },
+              required: ['stepId']
+            }
+          },
+          {
             name: 'flag_misconception',
             description: 'Identify a mathematical misconception that needs gentle correction',
             parameters: {
@@ -378,6 +399,11 @@ Remember: Your goal is to help students discover mathematical understanding thro
     this.toolHandlers.set('mark_reasoning_step', async (params) => {
       console.log('📝 Reasoning step captured:', params)
       this.emit('reasoning-step', params)
+      try {
+        // Persist to session current problem
+        const evt = new CustomEvent('simili-reasoning-step', { detail: params })
+        window.dispatchEvent(evt)
+      } catch {}
       return { success: true, recorded: true }
     })
 
@@ -403,6 +429,15 @@ Remember: Your goal is to help students discover mathematical understanding thro
     })
 
     // Handle canvas annotations
+    // Tag reasoning step
+    this.toolHandlers.set('tag_reasoning_step', async (params) => {
+      console.log('🏷️ Tag reasoning step:', params)
+      try {
+        const evt = new CustomEvent('simili-tag-reasoning-step', { detail: params })
+        window.dispatchEvent(evt)
+      } catch {}
+      return { success: true, tagged: true }
+    })
     this.toolHandlers.set('annotate_canvas', async (params) => {
       console.log('✏️ Canvas annotation:', params)
       this.emit('canvas-annotation', params)

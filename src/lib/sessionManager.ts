@@ -27,6 +27,30 @@ export interface MathActivity {
   }
 }
 
+export type ReasoningPhase = 'hypothesis' | 'evidence' | 'revision' | 'check'
+
+export interface ReasoningStepRecord {
+  id: string
+  timestamp: number
+  transcript: string
+  classification: 'correct' | 'partial' | 'incorrect' | 'exploring'
+  concepts: string[]
+  confidence: number
+  phase?: ReasoningPhase
+  tags?: string[]
+}
+
+export interface ProblemRecord {
+  id: string
+  index: number
+  startedAt: number
+  endedAt?: number
+  photoName?: string
+  photoTs?: number
+  reasoningSteps: ReasoningStepRecord[]
+  status: 'active' | 'completed'
+}
+
 export interface SessionData {
   id: string
   name: string
@@ -41,6 +65,8 @@ export interface SessionData {
     sessionDuration: number
     conceptsExplored: string[]
   }
+  problems?: ProblemRecord[]
+  currentProblemId?: string
 }
 
 export interface StudentProgress {
@@ -107,7 +133,9 @@ class SessionManager {
         totalManipulativesUsed: 0,
         sessionDuration: 0,
         conceptsExplored: []
-      }
+      },
+      problems: [],
+      currentProblemId: undefined
     }
   }
 
@@ -134,6 +162,70 @@ class SessionManager {
     this.addToSessionHistory(this.currentSession)
     
     console.log('💾 Session saved:', this.currentSession.name, 'with', paths.length, 'paths and', manipulatives.length, 'manipulatives')
+  }
+
+  // Problem management
+  startNewProblem(meta?: { photoName?: string; photoTs?: number }): ProblemRecord | null {
+    if (!this.currentSession) return null
+    // Close previous
+    const now = Date.now()
+    const problems = this.currentSession.problems || []
+    const active = problems.find(p => p.status === 'active')
+    if (active) {
+      active.status = 'completed'
+      active.endedAt = now
+    }
+    const nextIndex = problems.length + 1
+    const problem: ProblemRecord = {
+      id: `prob-${now}`,
+      index: nextIndex,
+      startedAt: now,
+      photoName: meta?.photoName,
+      photoTs: meta?.photoTs,
+      reasoningSteps: [],
+      status: 'active'
+    }
+    problems.push(problem)
+    this.currentSession.problems = problems
+    this.currentSession.currentProblemId = problem.id
+    this.currentSession.lastModified = now
+    this.addToSessionHistory(this.currentSession)
+    return problem
+  }
+
+  getCurrentProblem(): ProblemRecord | null {
+    if (!this.currentSession) return null
+    const id = this.currentSession.currentProblemId
+    if (!id) return null
+    return (this.currentSession.problems || []).find(p => p.id === id) || null
+  }
+
+  addReasoningStepToCurrent(step: ReasoningStepRecord): void {
+    if (!this.currentSession) return
+    // Ensure a problem exists
+    if (!this.currentSession.currentProblemId) {
+      this.startNewProblem()
+    }
+    const problem = this.getCurrentProblem()
+    if (!problem) return
+    problem.reasoningSteps.push(step)
+    this.currentSession.lastModified = Date.now()
+    this.addToSessionHistory(this.currentSession)
+  }
+
+  tagReasoningStep(stepId: string, phase?: ReasoningPhase, tags?: string[]): void {
+    if (!this.currentSession) return
+    const problems = this.currentSession.problems || []
+    for (const p of problems) {
+      const s = p.reasoningSteps.find(rs => rs.id === stepId)
+      if (s) {
+        if (phase) s.phase = phase
+        if (Array.isArray(tags)) s.tags = tags
+        break
+      }
+    }
+    this.currentSession.lastModified = Date.now()
+    this.addToSessionHistory(this.currentSession)
   }
 
   // Load current session
@@ -377,6 +469,9 @@ export function useSessionManager() {
     startNewSession: (name?: string) => sessionManager.startNewSession(name),
     loadSession: (id: string) => sessionManager.loadSession(id),
     exportSession: sessionManager.exportSession.bind(sessionManager),
-    importSession: sessionManager.importSession.bind(sessionManager)
+    importSession: sessionManager.importSession.bind(sessionManager),
+    startNewProblem: (meta?: { photoName?: string; photoTs?: number }) => sessionManager.startNewProblem(meta),
+    addReasoningStepToCurrent: (step: ReasoningStepRecord) => sessionManager.addReasoningStepToCurrent(step),
+    tagReasoningStep: (stepId: string, phase?: ReasoningPhase, tags?: string[]) => sessionManager.tagReasoningStep(stepId, phase, tags)
   }
 }

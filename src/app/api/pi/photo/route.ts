@@ -1,6 +1,7 @@
 // Accepts a photo that Pi should consider alongside the canvas
 import { NextRequest, NextResponse } from 'next/server'
 import { photoStore } from '../store'
+import { sessionManager } from '@/lib/sessionManager'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +13,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing photo' }, { status: 400 })
     }
     photoStore[sessionId] = { base64, ts: Date.now(), name }
+    try {
+      sessionManager.startNewProblem({ photoName: name, photoTs: Date.now() })
+    } catch {}
     return NextResponse.json({ ok: true, sessionId })
   } catch (error) {
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
