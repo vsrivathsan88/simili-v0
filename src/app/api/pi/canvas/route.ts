@@ -11,10 +11,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Gemini API key not configured' }, { status: 500 })
     }
 
-    const body = await request.json()
+    // Robustly parse body; handle empty or invalid JSON without throwing
+    let bodyText = ''
+    try {
+      bodyText = await request.text()
+    } catch {}
+    if (!bodyText || bodyText.trim().length === 0) {
+      return NextResponse.json({ error: 'Missing JSON body' }, { status: 400 })
+    }
+    let body: any
+    try {
+      body = JSON.parse(bodyText)
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+    }
     const base64Png: string | undefined = body?.base64Png
     const topic: string = body?.topic || 'math exploration'
     const sessionId: string = body?.sessionId || 'local'
+    const widthPx = typeof body?.widthPx === 'number' ? Math.max(1, Math.floor(body.widthPx)) : undefined
+    const heightPx = typeof body?.heightPx === 'number' ? Math.max(1, Math.floor(body.heightPx)) : undefined
+    const manipulatives = Array.isArray(body?.manipulatives) ? body.manipulatives : []
 
     if (!base64Png || typeof base64Png !== 'string' || base64Png.length < 10) {
       return NextResponse.json({ error: 'Missing base64Png' }, { status: 400 })
@@ -41,7 +57,9 @@ If you cannot analyze, set analysis to an empty object.`
     }
     parts.push({ text: 'Student canvas snapshot:' })
     parts.push({ inlineData: { mimeType: 'image/png', data: base64Png } })
-    parts.push({ text: `Current topic: ${topic}. Return only the JSON as described.` })
+    const sizeHint = widthPx && heightPx ? ` CanvasSizePx: { width: ${widthPx}, height: ${heightPx} }.` : ''
+    const mHint = manipulatives.length > 0 ? ` Manipulatives (approx, normalized): ${JSON.stringify(manipulatives.slice(0,3))}. If helpful, place the annotation near the most relevant manipulative (e.g., highlight a specific marker, shaded part, or point).` : ''
+    parts.push({ text: `Current topic: ${topic}.${sizeHint}${mHint} Return only the JSON as described. Always return annotation coordinates normalized (0..1) in the same space as the canvas snapshot.` })
 
     const result = await model.generateContent(parts)
     const raw = String(result?.response?.text?.() || '')

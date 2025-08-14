@@ -30,8 +30,12 @@ export const metadata: Metadata = {
   description: "Visual reasoning platform for elementary mathematics education",
   keywords: ["math", "education", "elementary", "learning", "reasoning"],
   authors: [{ name: "Simili Team" }],
-  viewport: "width=device-width, initial-scale=1",
 };
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
 
 export default function RootLayout({
   children,

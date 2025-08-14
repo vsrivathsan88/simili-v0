@@ -10,7 +10,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Gemini API key not configured' }, { status: 500 })
     }
 
-    const { prompt, temperature, maxTokens, model } = await request.json()
+    // Robustly parse body; handle empty or invalid JSON without throwing
+    let raw = ''
+    try {
+      raw = await request.text()
+    } catch {}
+    if (!raw || raw.trim().length === 0) {
+      return NextResponse.json({ error: 'Missing body' }, { status: 400 })
+    }
+    let parsed: any
+    try {
+      parsed = JSON.parse(raw)
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+    }
+
+    const { prompt, temperature, maxTokens, model } = parsed || {}
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json({ error: 'Missing prompt' }, { status: 400 })
     }

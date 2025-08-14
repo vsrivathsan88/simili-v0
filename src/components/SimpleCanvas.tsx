@@ -65,6 +65,7 @@ const SimpleCanvas = ({ onPathsChange, onShapeDetected }: SimpleCanvasProps) => 
   const [strokeWidth, setStrokeWidth] = useState(3)
   const [showManipulativeMenu, setShowManipulativeMenu] = useState(false)
   const [manipulatives, setManipulatives] = useState<Manipulative[]>([])
+  const manipulativesRef = useRef<Manipulative[]>([])
   const [activeManipulative, setActiveManipulative] = useState<string | null>(null)
   const [toolMode, setToolMode] = useState<ToolMode>('pointer') // Start in pointer mode
   const [drawingTool, setDrawingTool] = useState<'pen' | 'eraser'>('pen')
@@ -256,6 +257,11 @@ const SimpleCanvas = ({ onPathsChange, onShapeDetected }: SimpleCanvasProps) => 
     }
   }, [paths, currentPath, currentColor, strokeWidth])
 
+  // Keep a ref of manipulatives for snapshot loop without re-registering effect
+  useEffect(() => {
+    manipulativesRef.current = manipulatives
+  }, [manipulatives])
+
   // Snapshot sender: send when either canvas changed significantly or 5s pause
   useEffect(() => {
     const svg = svgRef.current
@@ -306,7 +312,21 @@ const SimpleCanvas = ({ onPathsChange, onShapeDetected }: SimpleCanvasProps) => 
         const res = await fetch('/api/pi/canvas', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ base64Png: base64, topic: 'fractions and shapes', sessionId: 'local' })
+          body: JSON.stringify({
+            base64Png: base64,
+            topic: 'fractions and shapes',
+            sessionId: 'local',
+            widthPx: svg.getBoundingClientRect().width,
+            heightPx: svg.getBoundingClientRect().height,
+            manipulatives: manipulativesRef.current.map(m => ({
+              id: m.id,
+              type: m.type,
+              shapeType: m.shapeType || null,
+              // approximate top-left, normalized to canvas size
+              xNorm: m.x / svg.getBoundingClientRect().width,
+              yNorm: m.y / svg.getBoundingClientRect().height
+            }))
+          })
         })
         if (res.ok) {
           const payload = await res.json()
@@ -564,6 +584,7 @@ const SimpleCanvas = ({ onPathsChange, onShapeDetected }: SimpleCanvasProps) => 
       >
         {/* Drawing paths render here */}
       </svg>
+      {/* Annotation overlay removed */}
     </div>
   )
 }
