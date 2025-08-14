@@ -75,6 +75,17 @@ export function useGeminiLiveTutor() {
         ...prev,
         messages: [...prev.messages.slice(-4), message] // Keep last 5 messages
       }))
+
+      // Speak Pi's response (simple TTS fallback so students hear the tutor)
+      try {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window && text && text.trim()) {
+          const utter = new SpeechSynthesisUtterance(text.trim())
+          utter.rate = 0.95
+          utter.pitch = 1.05
+          utter.volume = 0.8
+          window.speechSynthesis.speak(utter)
+        }
+      } catch {}
     }
 
     const handleHintSuggested = (event: CustomEvent) => {
