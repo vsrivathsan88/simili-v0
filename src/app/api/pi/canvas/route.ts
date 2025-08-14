@@ -66,12 +66,22 @@ If you cannot analyze, set analysis to an empty object.`
       result = await model.generateContent(parts)
     } catch (e: any) {
       // Fallback to 2.0 flash exp if 2.5 fails for this key
-      if (modelName !== 'gemini-2.0-flash-exp') {
-        modelName = 'gemini-2.0-flash-exp'
-        model = genAI.getGenerativeModel({ model: modelName })
-        result = await model.generateContent(parts)
-      } else {
-        throw e
+      try {
+        if (modelName !== 'gemini-2.0-flash-exp') {
+          modelName = 'gemini-2.0-flash-exp'
+          model = genAI.getGenerativeModel({ model: modelName })
+          result = await model.generateContent(parts)
+        } else {
+          throw e
+        }
+      } catch (e2: any) {
+        // Final fallback: text-only nudge when vision is unavailable for this key
+        const textModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+        const nudgePrompt = `You are Pi, a curious math coach for grade 3. The student just updated their canvas.
+Respond with ONE short nudge question (<= 18 words) to help them think, using the topic: ${topic}.`
+        const textOnly = await textModel.generateContent(nudgePrompt)
+        const text = String(textOnly?.response?.text?.() || 'What does your drawing show so far? What will you check next?')
+        return NextResponse.json({ text, analysis: {}, sessionId })
       }
     }
     const raw = String(result?.response?.text?.() || '')
