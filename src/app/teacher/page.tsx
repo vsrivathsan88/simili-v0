@@ -5,14 +5,35 @@ import { motion } from 'framer-motion'
 import ReasoningMap from '@/components/ReasoningMap'
 import InsightsPanel from '@/components/InsightsPanel'
 import ProgressDashboard from '@/components/ProgressDashboard'
+import { useSessionManager, type SessionData, type ReasoningPhase } from '@/lib/sessionManager'
 
 export default function TeacherView() {
   const [activeTab, setActiveTab] = useState<'live' | 'insights' | 'progress'>('live')
+  const [problemsTab, setProblemsTab] = useState<'list' | 'detail'>('list')
+  const [activeProblemId, setActiveProblemId] = useState<string | null>(null)
+  const [phaseFilter, setPhaseFilter] = useState<ReasoningPhase | 'all'>('all')
+  const [classFilter, setClassFilter] = useState<'all' | 'correct' | 'partial' | 'incorrect' | 'exploring'>('all')
+  const [sessionData, setSessionData] = useState<SessionData | null>(null)
+  const sessionApi = useSessionManager()
   const [connectedStudents, setConnectedStudents] = useState([
     { id: '1', name: 'Alex', status: 'active', currentActivity: 'Drawing fractions' },
     { id: '2', name: 'Sam', status: 'idle', currentActivity: 'Reading problem' },
     { id: '3', name: 'Jordan', status: 'active', currentActivity: 'Using manipulatives' },
   ])
+
+  // Load current session and refresh on reasoning events
+  useEffect(() => {
+    const refresh = () => setSessionData(sessionApi.getCurrentSession())
+    refresh()
+    const onStep = () => refresh()
+    const onTag = () => refresh()
+    window.addEventListener('simili-reasoning-step', onStep as EventListener)
+    window.addEventListener('simili-tag-reasoning-step', onTag as EventListener)
+    return () => {
+      window.removeEventListener('simili-reasoning-step', onStep as EventListener)
+      window.removeEventListener('simili-tag-reasoning-step', onTag as EventListener)
+    }
+  }, [])
 
   return (
     <div className="h-screen w-screen bg-gray-50 overflow-hidden flex flex-col">
@@ -47,7 +68,8 @@ export default function TeacherView() {
             { id: 'live', label: '🔴 Live Sessions', count: connectedStudents.length },
             { id: 'insights', label: '📊 Learning Insights', count: null },
             { id: 'progress', label: '📈 Progress Tracking', count: null },
-          ].map((tab) => (
+            { id: 'problems', label: '🧩 Problems', count: sessionData?.problems?.length || 0 },
+          ].map((tab: any) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
@@ -58,13 +80,13 @@ export default function TeacherView() {
               }`}
             >
               {tab.label}
-              {tab.count && (
+              {typeof tab.count === 'number' ? (
                 <span className={`px-2 py-1 rounded-full text-xs ${
                   activeTab === tab.id ? 'bg-blue-400' : 'bg-gray-300'
                 }`}>
                   {tab.count}
                 </span>
-              )}
+              ) : null}
             </button>
           ))}
         </div>
@@ -131,6 +153,117 @@ export default function TeacherView() {
             <div className="h-full bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="font-semibold text-gray-800 mb-6">Student Progress Overview</h3>
               <ProgressDashboard isOpen={true} onClose={() => {}} />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'problems' && (
+          <div className="h-full p-6">
+            <div className="h-full bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-800">Problems</h3>
+                <div className="flex items-center gap-2 text-sm">
+                  <select
+                    value={phaseFilter}
+                    onChange={(e) => setPhaseFilter(e.target.value as any)}
+                    className="border border-gray-300 rounded px-2 py-1"
+                  >
+                    <option value="all">All phases</option>
+                    <option value="hypothesis">Hypothesis</option>
+                    <option value="evidence">Evidence</option>
+                    <option value="revision">Revision</option>
+                    <option value="check">Check</option>
+                  </select>
+                  <select
+                    value={classFilter}
+                    onChange={(e) => setClassFilter(e.target.value as any)}
+                    className="border border-gray-300 rounded px-2 py-1"
+                  >
+                    <option value="all">All</option>
+                    <option value="correct">Correct</option>
+                    <option value="partial">Partial</option>
+                    <option value="incorrect">Revision</option>
+                    <option value="exploring">Exploring</option>
+                  </select>
+                </div>
+              </div>
+
+              {problemsTab === 'list' && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {(sessionData?.problems || []).map((p) => {
+                    const total = p.reasoningSteps.length
+                    const matching = p.reasoningSteps.filter((s) =>
+                      (phaseFilter === 'all' || s.phase === phaseFilter) &&
+                      (classFilter === 'all' || s.classification === classFilter)
+                    ).length
+                    return (
+                      <div key={p.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition"
+                        onClick={() => { setActiveProblemId(p.id); setProblemsTab('detail') }}
+                        role="button" aria-label={`Open problem ${p.index}`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-medium text-gray-800">Problem {p.index}</div>
+                          <span className={`text-xs px-2 py-1 rounded-full ${p.status === 'active' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>{p.status}</span>
+                        </div>
+                        <div className="text-xs text-gray-600">Steps: {matching}/{total}</div>
+                        {p.photoName && (
+                          <div className="text-xs text-gray-500 mt-1">Photo: {p.photoName}</div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {problemsTab === 'detail' && activeProblemId && (
+                <div className="space-y-3">
+                  <button
+                    className="text-sm text-blue-600 hover:underline"
+                    onClick={() => { setProblemsTab('list'); setActiveProblemId(null) }}
+                  >
+                    ← Back to problems
+                  </button>
+                  {(() => {
+                    const p = (sessionData?.problems || []).find(pp => pp.id === activeProblemId)
+                    if (!p) return <div className="text-sm text-gray-500">Problem not found.</div>
+                    const steps = p.reasoningSteps.filter((s) =>
+                      (phaseFilter === 'all' || s.phase === phaseFilter) &&
+                      (classFilter === 'all' || s.classification === classFilter)
+                    )
+                    return (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium text-gray-800">Problem {p.index}</div>
+                          <div className="text-xs text-gray-500">{new Date(p.startedAt).toLocaleTimeString()} {p.endedAt ? `→ ${new Date(p.endedAt).toLocaleTimeString()}` : ''}</div>
+                        </div>
+                        <div className="space-y-2">
+                          {steps.map((s) => (
+                            <div key={s.id} className="border border-gray-200 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="text-sm font-medium text-gray-800">{s.transcript.slice(0, 80)}{s.transcript.length > 80 ? '…' : ''}</div>
+                                <div className="flex items-center gap-2 text-xs">
+                                  {s.phase && <span className="px-2 py-1 rounded-full bg-gray-100 text-gray-700 capitalize">{s.phase}</span>}
+                                  <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 capitalize">{s.classification}</span>
+                                </div>
+                              </div>
+                              {Array.isArray(s.tags) && s.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {s.tags.map((t, i) => (
+                                    <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">{t}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          {steps.length === 0 && (
+                            <div className="text-sm text-gray-500">No steps match current filters.</div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
             </div>
           </div>
         )}
