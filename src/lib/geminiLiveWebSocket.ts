@@ -161,31 +161,24 @@ export class GeminiLiveWebSocketClient {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return
 
     const tutorPrompt = this.getTutorSystemPrompt()
-    
-    const setupMessage: GeminiLiveMessage = {
-      type: 'setup',
-      setupComplete: false
-    }
 
-    // Send initial setup with Pi tutor configuration
-    this.ws.send(JSON.stringify(setupMessage))
-    
-    // Send system instruction as first client content
-    const systemMessage: GeminiLiveMessage = {
-      type: 'clientContent',
-      clientContent: {
-        turns: [{
-          role: 'user',
-          parts: [{
-            text: tutorPrompt.text
-          }]
-        }],
-        turnComplete: true
+    // Send setup frame with model and generation config
+    const setupFrame = {
+      setup: {
+        // Live models expect the fully qualified name
+        model: 'models/gemini-2.0-flash-exp',
+        generationConfig: {
+          temperature: Number(process.env.NEXT_PUBLIC_GEMINI_TEMPERATURE ?? 0.7),
+          maxOutputTokens: Number(process.env.NEXT_PUBLIC_GEMINI_MAX_TOKENS ?? 96)
+        },
+        systemInstruction: {
+          parts: [{ text: tutorPrompt.text }]
+        }
       }
     }
-    
-    this.ws.send(JSON.stringify(systemMessage))
-    console.log('📚 Pi tutor system prompt configured')
+
+    this.ws.send(JSON.stringify(setupFrame))
+    console.log('📚 Sent setup frame to Gemini Live')
   }
 
   private getTutorSystemPrompt(): TutorSystemPrompt {
@@ -424,39 +417,42 @@ Remember: Your goal is to help students discover mathematical understanding thro
     })
   }
 
-  private async handleMessage(message: GeminiLiveMessage) {
-    switch (message.type) {
-      case 'setupComplete':
-        this.setupComplete = true
-        console.log('✅ Gemini Live setup complete')
-        this.emit('setup-complete', {})
-        break
-
-      case 'serverContent':
-        if (message.serverContent?.modelTurn?.parts) {
-          for (const part of message.serverContent.modelTurn.parts) {
-            if (part.text) {
-              console.log('🔮 Pi says:', part.text)
-              this.emit('pi-response', { text: part.text })
-            }
-            if (part.functionCall) {
-              await this.handleToolCall(part.functionCall)
-            }
-          }
-        }
-        break
-
-      case 'toolCall':
-        if (message.toolCall?.functionCalls) {
-          for (const functionCall of message.toolCall.functionCalls) {
-            await this.handleToolCall(functionCall)
-          }
-        }
-        break
-
-      default:
-        console.log('📥 Received message:', message.type, message)
+  private async handleMessage(message: any) {
+    // Setup complete acknowledgement
+    if (message?.setupComplete === true || message?.setup_complete === true) {
+      this.setupComplete = true
+      console.log('✅ Gemini Live setup complete')
+      this.emit('setup-complete', {})
+      return
     }
+
+    // Server content frames
+    const serverContent = message.serverContent || message.server_content
+    const modelTurn = serverContent?.modelTurn || serverContent?.model_turn
+    const parts = modelTurn?.parts
+    if (Array.isArray(parts)) {
+      for (const part of parts) {
+        if (typeof part.text === 'string' && part.text.length > 0) {
+          console.log('🔮 Pi says:', part.text)
+          this.emit('pi-response', { text: part.text })
+        }
+        if (part.functionCall) {
+          await this.handleToolCall(part.functionCall)
+        }
+      }
+      return
+    }
+
+    // Tool call frames
+    const toolCall = message.toolCall || message.tool_call
+    if (toolCall?.functionCalls) {
+      for (const functionCall of toolCall.functionCalls) {
+        await this.handleToolCall(functionCall)
+      }
+      return
+    }
+
+    // Ignore unrecognized frames silently
   }
 
   private async handleToolCall(functionCall: FunctionCall) {
@@ -512,8 +508,7 @@ Remember: Your goal is to help students discover mathematical understanding thro
       const imageData = canvasElement.toDataURL('image/png')
       const base64Data = imageData.split(',')[1] // Remove data:image/png;base64, prefix
       
-      const message: GeminiLiveMessage = {
-        type: 'clientContent',
+      const frame = {
         clientContent: {
           turns: [{
             role: 'user',
@@ -527,8 +522,8 @@ Remember: Your goal is to help students discover mathematical understanding thro
           turnComplete: true
         }
       }
-      
-      this.ws?.send(JSON.stringify(message))
+
+      this.ws?.send(JSON.stringify(frame))
       console.log('📸 Canvas snapshot sent to Pi')
     } catch (error) {
       console.error('Failed to send canvas snapshot:', error)
@@ -542,20 +537,17 @@ Remember: Your goal is to help students discover mathematical understanding thro
       return
     }
 
-    const message: GeminiLiveMessage = {
-      type: 'clientContent',
+    const frame = {
       clientContent: {
         turns: [{
           role: 'user',
-          parts: [{
-            text: text
-          }]
+          parts: [{ text }]
         }],
         turnComplete: true
       }
     }
-    
-    this.ws?.send(JSON.stringify(message))
+
+    this.ws?.send(JSON.stringify(frame))
     console.log('💬 Student message sent:', text)
   }
 
@@ -564,7 +556,8 @@ Remember: Your goal is to help students discover mathematical understanding thro
     if (this.isStreamingAudio) return true
 
     try {
-      this.audioStream = await navigator.mediaDevices.getUserMedia({
+      const getUM = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices)
+      this.audioStream = await getUM({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
@@ -610,8 +603,7 @@ Remember: Your goal is to help students discover mathematical understanding thro
     
     const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)))
     
-    const message: GeminiLiveMessage = {
-      type: 'clientContent',
+    const frame = {
       clientContent: {
         turns: [{
           role: 'user',
@@ -622,11 +614,11 @@ Remember: Your goal is to help students discover mathematical understanding thro
             }
           }]
         }],
-        turnComplete: false // Audio streaming is continuous
+        turnComplete: false
       }
     }
-    
-    this.ws?.send(JSON.stringify(message))
+
+    this.ws?.send(JSON.stringify(frame))
   }
 
   // Connection management
@@ -644,13 +636,8 @@ Remember: Your goal is to help students discover mathematical understanding thro
   }
 
   private startHeartbeat() {
-    const interval = parseInt(process.env.WS_HEARTBEAT_INTERVAL || '30000')
-    this.heartbeatInterval = window.setInterval(() => {
-      if (this.isConnected && this.ws?.readyState === WebSocket.OPEN) {
-        // Send ping message
-        this.ws.send(JSON.stringify({ type: 'ping' }))
-      }
-    }, interval)
+    // Gemini Live does not support custom heartbeat frames; rely on socket keepalive
+    this.heartbeatInterval = null
   }
 
   private stopHeartbeat() {

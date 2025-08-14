@@ -98,7 +98,8 @@ class RTCManager {
         channelCount: 1
       }
 
-      this.localAudioStream = await navigator.mediaDevices.getUserMedia({
+      const getUM = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices)
+      this.localAudioStream = await getUM({
         audio: audioConstraints,
         video: false
       })

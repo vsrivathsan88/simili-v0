@@ -6,7 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "relay": "node scripts/live-relay-server.mjs",
+    "diagnose": "node scripts/live-diagnose.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -19,6 +21,9 @@
     "roughjs": "^4.6.6",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
+    "@daily-co/daily-js": "^0.57.0",
+    "dotenv": "^16.4.5",
+    "ws": "^8.17.1",
     "tldraw": "^3.15.1",
     "zustand": "^5.0.7"
   },

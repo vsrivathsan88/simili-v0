@@ -20,7 +20,11 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case 'get-websocket-url':
         // Return WebSocket URL with server-side API key
-        const wsUrl = `wss://generativelanguage.googleapis.com/ws/v1beta/models/gemini-2.0-flash-exp:streamGenerateContent?key=${apiKey}`
+        // Using BidiGenerateContent endpoint per Gemini Live docs
+        // Use "?alt=sse" style is for HTTP streaming; for WS we use the documented full service path.
+        // For some keys/endpoints, servers require Sec-WebSocket-Protocol: null and fail with 1006 if wrong path.
+        // Try the models/endpoint variant that is documented for some Live clients.
+        const wsUrl = `wss://generativelanguage.googleapis.com/ws/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`
         return NextResponse.json({ wsUrl })
       
       case 'validate-connection':

@@ -196,3 +196,83 @@ This implementation successfully addresses all identified issues:
 **Ready for testing with real Gemini API keys!**
 
 The system now provides a professional, secure, and educationally sound platform for AI-powered math tutoring with real-time canvas interaction.
+
+
+## Remaining work plan
+
+- Voice transport (Pipecat + Daily)
+  - Server: small Pipecat Node service that joins a Daily room and bridges audio to Gemini Live.
+  - API: `/api/daily/token` to mint ephemeral room tokens for the browser.
+  - Client: “Join Voice” in `SessionStartDialog` using `@daily-co/daily-js` (audio-only by default).
+  - VAD and auto-idle: stop streaming after silence (configurable), push-to-talk optional.
+  - Console events: `voice:join`, `voice:left`, `voice:vad-start`, `voice:vad-stop`, `voice:error`.
+
+- Canvas vision (Pi “sees” the work)
+  - Snapshot throttle: send 1 PNG every 3–5s while drawing to `/api/pi/canvas` with session ID.
+  - Tutor prompt stitching: latest snapshot + brief context → short, 1–2 sentence coaching.
+  - Optional screen-share: toggle to publish a Daily screen track (off by default).
+  - Console events: `canvas:snapshot-sent`, `canvas:vision-queued`, `canvas:vision-response`, `canvas:share-start`, `canvas:share-stop`.
+
+- Tutor brain and prompt strategy
+  - Unify Pi’s system prompt (warm, Socratic, 1–2 sentences, no direct answers).
+  - Topic-aware fragments from `studentContext` (fractions, shapes, number sense, etc.).
+  - Speaking cadence: trigger on new shapes/manipulatives, long pause, or confusion patterns; avoid interrupting productive struggle.
+  - Console events: `tutor:request`, `tutor:response`, `tutor:throttle`, `tutor:skip`, `tutor:error`.
+
+- Tooling and UI integration
+  - Implement `annotate_canvas`, `flag_misconception`, `mark_reasoning_step` tool actions.
+  - Render annotations on `SimpleCanvas`; append steps to `ReasoningMap`.
+  - Add “Ping Pi” developer button for manual verification (kept in dev only).
+  - Console events: `tool:annotate`, `tool:misconception`, `tool:reasoning-step`, `tool:error`.
+
+- State, sessions, and context
+  - Session ID across voice, snapshots, and tutor turns.
+  - Memory window: retain last N turns; trim to control cost.
+  - Console events: `session:start`, `session:end`, `session:save`, `session:error`.
+
+- Reliability and error handling (no silent fallbacks)
+  - Emit structured console events for all failures (no hidden fallbacks): `voice:error`, `tutor:error`, `canvas:error`.
+  - Debounce draw bursts and coalesce multiple triggers.
+  - Timeouts and bounded retries on server calls; surface status via events.
+
+- Cost controls
+  - Audio-only default; short responses (64–96 tokens); snapshot throttle.
+  - Optional screen share only on demand.
+  - Console events: `cost:minutes-updated`, `cost:snapshot-throttled`, `cost:guardrail-hit`.
+
+- Observability
+  - Standardize logs with `simili:*` prefix and JSON payloads for easy filtering.
+  - Add lightweight server logs (latency, prompt length, token targets when available).
+
+- Testing
+  - Playwright flows: Start Pi → draw → expect thought bubble ≤ 2s; join voice (later) → basic turn-taking.
+  - Unit tests for prompt builder and tool parsers.
+
+- Deployment & config
+  - `.env.local`: `GEMINI_API_KEY`, `DAILY_API_KEY`, `DAILY_DOMAIN`, `NEXT_PUBLIC_DAILY_DOMAIN`, `GEMINI_MODEL_NAME`, `GEMINI_MAX_TOKENS`.
+  - Start scripts: `npm run dev` (app), `npm run pipecat` (server, later).
+  - Health checks for `/api/gemini-text`, voice server, and snapshot route.
+
+### Tutor triggers, behavior, and personality (high‑priority)
+
+- Event‑driven triggers
+  - Manipulative add/change; significant canvas delta; idle > 5–8s with no voice; resume after pause.
+  - Do not trigger while bubble is visible; require a minimum gap between messages.
+- Cadence guardrails
+  - Min gap (e.g., 12–20s), per‑minute cap, de‑duplication of similar messages.
+  - Emit `simili:tutor:cadence-suppressed` with a reason (bubble‑visible, min‑gap, max‑per‑minute).
+- Personality and response policy
+  - Warm, Socratic, 1–2 sentences; ask a single question; no direct answers; avoid repetition.
+  - Prompt includes “new information only; do not repeat yourself.”
+- Diagnostics
+  - Track average interval between messages, suppression counts, distinct prompts vs. responses.
+  - Console events: `tutor:request`, `tutor:response`, `tutor:cadence-suppressed`, `tutor:error`.
+
+### Multimodal turn‑taking (voice + canvas) – to revisit
+
+- Kids may draw and speak concurrently; tutor should respect natural turn‑taking.
+- Policy:
+  - If voice is active and user speaking, suppress canvas‑triggered messages until VAD end.
+  - After speech end, wait a small grace period (e.g., 2–3s) before processing canvas events.
+  - If only drawing (no voice), use the current cadence rules (min gap, idle > 5–8s, significant deltas).
+  - Emit console events: `turn:student-voice-start`, `turn:student-voice-end`, `turn:canvas-queued`, `turn:canvas-flushed`.

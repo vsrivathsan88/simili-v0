@@ -8,7 +8,7 @@ const PhotoPanel = () => {
   const [src, setSrc] = useState<string | null>(null)
   const [fileName, setFileName] = useState<string>('')
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     
@@ -16,6 +16,28 @@ const PhotoPanel = () => {
     setSrc(url)
     setFileName(file.name)
     
+    // Send to server so vision can include photo
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const res = String(reader.result || '')
+          const b64 = res.includes(',') ? res.split(',')[1] : res
+          resolve(b64)
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+      await fetch('/api/pi/photo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64, sessionId: 'local', name: file.name })
+      })
+      console.log('simili:photo:uploaded', { name: file.name, bytes: file.size, ts: Date.now() })
+    } catch (err) {
+      console.log('simili:photo:error', { error: err instanceof Error ? err.message : String(err), ts: Date.now() })
+    }
+
     // Announce to screen readers
     const announcer = document.getElementById('announcements')
     if (announcer) {

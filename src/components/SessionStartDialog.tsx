@@ -22,7 +22,18 @@ export default function SessionStartDialog({ isOpen, onStart, onSkip }: SessionS
     setHasPermissions(supportsVoice)
   }, [])
 
-  const handleStart = () => {
+  const handleStart = async () => {
+    // Proactively request microphone permission so getUserMedia works later
+    if (enableVoice && typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+      try {
+        const getUM = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices)
+        const stream = await getUM({ audio: true })
+        // Immediately stop tracks; we only wanted the permission grant
+        stream.getTracks().forEach(t => t.stop())
+      } catch (e) {
+        console.warn('Microphone permission denied or unavailable:', e)
+      }
+    }
     onStart(enableVoice)
   }
 

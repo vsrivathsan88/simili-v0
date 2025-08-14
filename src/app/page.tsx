@@ -5,6 +5,7 @@ import PhotoPanel from '@/components/PhotoPanel'
 import SimiliCanvas from '@/components/SimiliCanvas'
 import InsightsPanel from '@/components/InsightsPanel'
 import AccessibleButton from '@/components/AccessibleButton'
+// Shape suggestions disabled in favor of vision analysis
 import { type DetectedShape, type SmartSuggestion } from '@/lib/shapeDetection'
 import { useSessionManager, sessionManager } from '@/lib/sessionManager'
 import { useCollaboration } from '@/lib/collaborationManager'
@@ -13,6 +14,7 @@ import ShareDialog from '@/components/ShareDialog'
 // import VoiceControl from '@/components/VoiceControl'
 // import RealtimeCollaboration from '@/components/RealtimeCollaboration'
 import AmbientAgent from '@/components/AmbientAgent'
+import SessionStartDialog from '@/components/SessionStartDialog'
 import ReasoningMap from '@/components/ReasoningMap'
 
 type PiState = 'idle' | 'listening' | 'thinking' | 'suggesting'
@@ -29,7 +31,8 @@ export default function Home() {
   const [canvasRef, setCanvasRef] = useState<any>(null) // Ref to canvas for voice commands
   const [collaborationRoomId, setCollaborationRoomId] = useState<string | null>(null)
   const [isCollaborationHost, setIsCollaborationHost] = useState(false)
-  const [ambientAgentActive, setAmbientAgentActive] = useState(true) // Start ambient by default
+  const [ambientAgentActive, setAmbientAgentActive] = useState(false)
+  const [showStartDialog, setShowStartDialog] = useState(true)
   const [piState, setPiState] = useState<PiState>('idle')
   const [detectedShapes, setDetectedShapes] = useState<DetectedShape[]>([])
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>([])
@@ -95,22 +98,8 @@ export default function Home() {
     setInsightsOpen(true)
   }
 
-  const handleShapeDetected = (shapes: DetectedShape[], suggestions: string[], smart: SmartSuggestion[]) => {
-    setDetectedShapes(shapes)
-    setCurrentSuggestions(suggestions)
-    setSmartSuggestions(smart)
-    
-    // Make Pi respond to the detection
-    setPiState('thinking')
-    setTimeout(() => {
-      if (suggestions.length > 0 || smart.length > 0) {
-        setPiState('suggesting')
-        // Return to idle after showing suggestion
-        setTimeout(() => setPiState('idle'), 5000)
-      } else {
-        setPiState('idle')
-      }
-    }, 1000)
+  const handleShapeDetected = () => {
+    // No-op: local suggestions removed in favor of Gemini vision
   }
 
   // Fallback Pi state changes when no shapes are detected
@@ -147,6 +136,16 @@ export default function Home() {
           )}
         </div>
         <div className="flex items-center gap-3">
+          {/* Start Pi button */}
+          <AccessibleButton 
+            onClick={() => setShowStartDialog(true)}
+            variant="ghost"
+            aria-label="Start Pi"
+            className="bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+          >
+            🤖 Start Pi
+          </AccessibleButton>
+
           {/* Teacher View Link */}
           <AccessibleButton 
             onClick={() => window.open('/teacher', '_blank')}
@@ -195,45 +194,7 @@ export default function Home() {
           )}
         </div>
         
-        {/* Show smart suggestions with educational context */}
-        {piState === 'suggesting' && smartSuggestions.length > 0 && (
-          <div className="mt-2 bg-white/90 backdrop-blur-sm rounded-lg p-3 text-sm text-gray-700 shadow-lg border-l-4 border-green-400">
-            <div className="flex items-center gap-2 mb-2">
-              <span>💡</span>
-              <span className="font-medium">{smartSuggestions[0].message}</span>
-            </div>
-            
-            {smartSuggestions[0].educationalContext && (
-              <div className="text-xs text-gray-600 mb-2 italic">
-                💭 {smartSuggestions[0].educationalContext}
-              </div>
-            )}
-            
-            <div className="flex items-center justify-between">
-              {smartSuggestions[0].manipulative && (
-                <button
-                  onClick={() => handleAutoAddManipulative(smartSuggestions[0].manipulative!)}
-                  className="bg-green-500 text-white px-3 py-1 rounded-md text-xs hover:bg-green-600 transition-colors shadow-sm"
-                >
-                  ✨ Add {smartSuggestions[0].manipulative?.replace('-', ' ')}
-                </button>
-              )}
-              
-              {smartSuggestions[0].gradeLevel && (
-                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                  {smartSuggestions[0].gradeLevel}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-        
-        {/* Fallback to basic suggestions */}
-        {piState === 'suggesting' && smartSuggestions.length === 0 && currentSuggestions.length > 0 && (
-          <div className="mt-2 bg-white/90 backdrop-blur-sm rounded-lg p-2 text-sm text-gray-700 shadow-lg">
-            💡 {currentSuggestions[0]}
-          </div>
-        )}
+        {/* Local suggestions removed: vision-first tutoring */}
       </div>
       
             {/* Main Content Container - Photo + Canvas Focus */}
@@ -311,6 +272,20 @@ export default function Home() {
           gradeLevel: 3,
           subject: 'mathematics',
           currentTopic: 'fractions and shapes'
+        }}
+      />
+
+      {/* Start Dialog */}
+      <SessionStartDialog
+        isOpen={showStartDialog}
+        onStart={(enableVoice: boolean) => {
+          setAmbientAgentActive(true)
+          setShowStartDialog(false)
+          setSessionStarted(true)
+          // voice handled in Gemini components; here we just toggle agent
+        }}
+        onSkip={() => {
+          setShowStartDialog(false)
         }}
       />
     </div>

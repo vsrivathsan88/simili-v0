@@ -52,7 +52,7 @@ export default function SimplePage() {
         </div>
 
         {/* Tutor Panel - Slides in when session active */}
-        {sessionActive && (
+          {false && sessionActive && (
           <div className="w-1/3 h-full p-4 pl-0">
             <div className="h-full bg-white rounded-lg shadow-sm border border-gray-200">
               <GeminiLiveTutor 

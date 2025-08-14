@@ -10,7 +10,7 @@ import GraphPaper from '@/components/GraphPaper'
 import FractionBar from '@/components/FractionBar'
 import GeometricShape from '@/components/GeometricShape'
 import Calculator from '@/components/Calculator'
-import { detectShape, analyzeDrawing, type DetectedShape, type SmartSuggestion } from '@/lib/shapeDetection'
+import { type DetectedShape, type SmartSuggestion } from '@/lib/shapeDetection'
 import { useSessionManager } from '@/lib/sessionManager'
 
 interface CanvasPoint {
@@ -53,6 +53,9 @@ const SimpleCanvas = ({ onPathsChange, onShapeDetected }: SimpleCanvasProps) => 
     onShapeDetectedRef.current = onShapeDetected
   })
   const svgRef = useRef<SVGSVGElement>(null)
+  const lastSnapshotRef = useRef<string>('')
+  const lastDrawTimeRef = useRef<number>(Date.now())
+  const lastSentTimeRef = useRef<number>(0)
   const [isDrawing, setIsDrawing] = useState(false)
   const [currentPath, setCurrentPath] = useState<CanvasPoint[]>([])
   const [paths, setPaths] = useState<DrawingPath[]>([])
@@ -88,6 +91,7 @@ const SimpleCanvas = ({ onPathsChange, onShapeDetected }: SimpleCanvasProps) => 
   const draw = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     if (!isDrawing || toolMode !== 'pencil') return
     setCurrentPath((prev) => [...prev, getMousePos(e)])
+    lastDrawTimeRef.current = Date.now()
   }, [isDrawing, getMousePos, toolMode])
 
   const stopDrawing = useCallback(() => {
@@ -115,6 +119,56 @@ const SimpleCanvas = ({ onPathsChange, onShapeDetected }: SimpleCanvasProps) => 
           timestamp: Date.now()
         }
       }))
+
+      // Also export the current SVG as a PNG snapshot for Gemini Live
+      const exportSvgAsPngBase64 = async (svgEl: SVGSVGElement): Promise<string | null> => {
+        try {
+          const serializer = new XMLSerializer()
+          const svgString = serializer.serializeToString(svgEl)
+          const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' })
+          const url = URL.createObjectURL(svgBlob)
+
+          const img = new Image()
+          const { width, height } = svgEl.getBoundingClientRect()
+          const canvas = document.createElement('canvas')
+          canvas.width = Math.max(1, Math.floor(width))
+          canvas.height = Math.max(1, Math.floor(height))
+          const ctx = canvas.getContext('2d')
+          if (!ctx) return null
+
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => {
+              ctx.clearRect(0, 0, canvas.width, canvas.height)
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+              URL.revokeObjectURL(url)
+              resolve()
+            }
+            img.onerror = (e) => {
+              URL.revokeObjectURL(url)
+              reject(e)
+            }
+            img.src = url
+          })
+
+          const dataUrl = canvas.toDataURL('image/png')
+          return dataUrl.split(',')[1] || null
+        } catch (e) {
+          console.warn('⚠️ Failed to export canvas snapshot:', e)
+          return null
+        }
+      }
+
+      // Fire-and-forget snapshot dispatch
+      ;(async () => {
+        if (svgRef.current) {
+          const base64 = await exportSvgAsPngBase64(svgRef.current)
+          if (base64) {
+            window.dispatchEvent(new CustomEvent('simili-canvas-snapshot', {
+              detail: { base64Png: base64, timestamp: Date.now() }
+            }))
+          }
+        }
+      })()
       
       // Save to session with current manipulatives
       sessionManager.saveSession(newPaths, manipulatives)
@@ -124,14 +178,8 @@ const SimpleCanvas = ({ onPathsChange, onShapeDetected }: SimpleCanvasProps) => 
         sessionManager.logActivity('shape_drawn', { shapesDetected: [] })
       }
       
-      // Only analyze for shapes and suggestions if no manipulatives are active
-      if (manipulatives.length === 0) {
-        const analysis = analyzeDrawing(newPaths)
-        onShapeDetectedRef.current?.(analysis.shapes, analysis.suggestions, analysis.smartSuggestions)
-      } else {
-        // Clear Pi suggestions when manipulatives are active
-        onShapeDetectedRef.current?.([], [], [])
-      }
+      // Vision-driven flow: disable local shape suggestions
+      onShapeDetectedRef.current?.([], [], [])
     }
     setCurrentPath([])
   }, [currentPath, currentColor, strokeWidth, drawingTool, paths, pathHistory, manipulatives]) // Removed onShapeDetected to prevent loops
@@ -208,6 +256,78 @@ const SimpleCanvas = ({ onPathsChange, onShapeDetected }: SimpleCanvasProps) => 
     }
   }, [paths, currentPath, currentColor, strokeWidth])
 
+  // Snapshot sender: send when either canvas changed significantly or 5s pause
+  useEffect(() => {
+    const svg = svgRef.current
+    if (!svg) return
+
+    const exportSvgAsPngBase64 = async (): Promise<string | null> => {
+      try {
+        const serializer = new XMLSerializer()
+        const svgString = serializer.serializeToString(svg)
+        const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' })
+        const url = URL.createObjectURL(svgBlob)
+        const img = new Image()
+        const rect = svg.getBoundingClientRect()
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.max(1, Math.floor(rect.width))
+        canvas.height = Math.max(1, Math.floor(rect.height))
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return null
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); URL.revokeObjectURL(url); resolve() }
+          img.onerror = (e) => { URL.revokeObjectURL(url); reject(e) }
+          img.src = url
+        })
+        return canvas.toDataURL('image/png').split(',')[1] || null
+      } catch {
+        return null
+      }
+    }
+
+    const loop = setInterval(async () => {
+      const now = Date.now()
+      const idleFor = now - lastDrawTimeRef.current
+      const timeSinceSent = now - lastSentTimeRef.current
+      // Send if paused > 5000ms or if drawing recent and we haven't sent in 1500ms
+      const shouldSend = (idleFor > 5000 && timeSinceSent > 2000) || (idleFor < 1000 && timeSinceSent > 1500)
+      if (!shouldSend) return
+
+      const base64 = await exportSvgAsPngBase64()
+      if (!base64) return
+      // Compare with last snapshot (cheap size check)
+      if (lastSnapshotRef.current && Math.abs(base64.length - lastSnapshotRef.current.length) < 200) {
+        return
+      }
+      lastSnapshotRef.current = base64
+      lastSentTimeRef.current = now
+      try {
+        console.log('simili:canvas:snapshot-sent', { bytes: base64.length, ts: now })
+        const res = await fetch('/api/pi/canvas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64Png: base64, topic: 'fractions and shapes', sessionId: 'local' })
+        })
+        if (res.ok) {
+          const payload = await res.json()
+          const text = typeof payload?.text === 'string' ? payload.text : ''
+          const analysis = typeof payload?.analysis === 'object' ? payload.analysis : undefined
+          if (analysis) {
+            console.log('simili:tutor:analysis', { analysis, ts: Date.now() })
+          }
+          if (text && text.trim()) {
+            console.log('simili:tutor:vision-response', { text: text.trim(), ts: Date.now() })
+            window.dispatchEvent(new CustomEvent('simili-tutor-vision', { detail: { text: text.trim(), analysis } }))
+          }
+        }
+      } catch (e) {
+        console.log('simili:canvas:error', { error: e instanceof Error ? e.message : String(e), ts: Date.now() })
+      }
+    }, 500)
+
+    return () => clearInterval(loop)
+  }, [])
+
   const saveToHistory = useCallback(() => {
     setPathHistory(prev => [...prev.slice(0, historyStep + 1), [...paths]])
     setHistoryStep(prev => prev + 1)
@@ -271,15 +391,21 @@ const SimpleCanvas = ({ onPathsChange, onShapeDetected }: SimpleCanvasProps) => 
       y: 100,
       shapeType: ['circle', 'square', 'triangle'].includes(type) ? type as 'circle' | 'square' | 'triangle' : undefined
     }
-    
-    // Broadcast manipulative event for ambient agent
+    // Broadcast manipulative event for ambient agent with richer details & trigger a snapshot
     window.dispatchEvent(new CustomEvent('simili-manipulative-event', {
       detail: {
         type: 'tool_added',
         manipulativeType: type,
+        id: newManipulative.id,
+        x: newManipulative.x,
+        y: newManipulative.y,
+        shapeType: newManipulative.shapeType || null,
         timestamp: Date.now()
       }
     }))
+
+    // Force a snapshot after manipulative insertion
+    lastDrawTimeRef.current = Date.now() - 6000 // make idle>5s true for immediate send in loop
     setManipulatives([newManipulative]) // Add only the new one
     setActiveManipulative(newManipulative.id)
     setShowManipulativeMenu(false)

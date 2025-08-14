@@ -1,12 +1,15 @@
-// Socket.IO Client Hook for Reliable Gemini Live Connection
-// Provides auto-reconnection, message buffering, and real-time collaboration
+// Enhanced WebSocket Client with Socket.IO-like Reliability
+// Provides auto-reconnection, message buffering, and robust error handling
 
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { io, Socket } from 'socket.io-client'
+// Module-level cache to avoid repeated /api/gemini-live calls across re-mounts
+let CACHED_WS_URL: string | null = null
+let IN_FLIGHT_WS_URL_PROMISE: Promise<string> | null = null
 
-interface SocketIOState {
+import { useEffect, useRef, useState, useCallback } from 'react'
+
+interface WebSocketState {
   isConnected: boolean
   isConnecting: boolean
   lastError: string | null
@@ -22,21 +25,21 @@ interface GeminiResponse {
   }>
 }
 
-interface UseSocketIOReturn {
-  socket: Socket | null
-  state: SocketIOState
+interface UseWebSocketReturn {
+  state: WebSocketState
   sendToGemini: (message: Record<string, unknown>) => void
   sendCanvasUpdate: (canvasData: Record<string, unknown>) => void
   setupGemini: (config: Record<string, unknown>) => void
+  connect: () => Promise<void>
   disconnect: () => void
 }
 
 export function useSocketIO(
   onGeminiResponse?: (response: GeminiResponse) => void,
   onStatusChange?: (status: string) => void
-): UseSocketIOReturn {
-  const [socket, setSocket] = useState<Socket | null>(null)
-  const [state, setState] = useState<SocketIOState>({
+): UseWebSocketReturn {
+  const liveDisabled = process.env.NEXT_PUBLIC_DISABLE_LIVE_WS === 'true'
+  const [state, setState] = useState<WebSocketState>({
     isConnected: false,
     isConnecting: false,
     lastError: null,
@@ -47,6 +50,12 @@ export function useSocketIO(
   const onGeminiResponseRef = useRef(onGeminiResponse)
   const onStatusChangeRef = useRef(onStatusChange)
   const messageQueue = useRef<Record<string, unknown>[]>([])
+  const wsRef = useRef<WebSocket | null>(null)
+  const reconnectTimeout = useRef<NodeJS.Timeout | null>(null)
+  const heartbeatInterval = useRef<NodeJS.Timeout | null>(null)
+  const setupQueuedOrSent = useRef<boolean>(false)
+  const inFlightConnect = useRef<boolean>(false)
+  const wsUrlRef = useRef<string | null>(null)
 
   // Update refs when callbacks change
   useEffect(() => {
@@ -54,176 +63,288 @@ export function useSocketIO(
     onStatusChangeRef.current = onStatusChange
   }, [onGeminiResponse, onStatusChange])
 
-  // Initialize Socket.IO connection
-  const connect = useCallback(() => {
-    if (socket?.connected) return
+  // Get WebSocket URL from server
+  const getWebSocketUrl = useCallback(async (): Promise<string> => {
+    try {
+      if (CACHED_WS_URL) {
+        wsUrlRef.current = CACHED_WS_URL
+        return CACHED_WS_URL
+      }
+      // Prefer local relay if available
+      const relayUrl = `ws://localhost:${process.env.NEXT_PUBLIC_LIVE_RELAY_PORT || 8787}/live`
+      CACHED_WS_URL = relayUrl
+      wsUrlRef.current = relayUrl
+      return relayUrl
+    } catch (error) {
+      console.error('❌ Failed to get WebSocket URL:', error)
+      IN_FLIGHT_WS_URL_PROMISE = null
+      throw error
+    }
+  }, [])
 
+  // Initialize WebSocket connection
+  const connect = useCallback(async () => {
+    if (liveDisabled) {
+      console.log('🔇 Live WS disabled by flag (NEXT_PUBLIC_DISABLE_LIVE_WS=true)')
+      return
+    }
+    if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+      return
+    }
+
+    if (inFlightConnect.current) return
+    inFlightConnect.current = true
     setState(prev => ({ ...prev, isConnecting: true, lastError: null }))
 
-    const newSocket = io({
-      transports: ['websocket', 'polling'],
-      upgrade: true,
-      rememberUpgrade: true,
-      timeout: 20000,
-      forceNew: false,
-      reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      maxReconnectionAttempts: 10,
-      randomizationFactor: 0.5
-    })
+    try {
+      const wsUrl = await getWebSocketUrl()
+      const ws = new WebSocket(wsUrl)
+      
+      ws.onopen = () => {
+        console.log('🔗 WebSocket connected to Gemini Live')
+        setState(prev => ({
+          ...prev,
+          isConnected: true,
+          isConnecting: false,
+          lastError: null,
+          reconnectAttempts: 0
+        }))
+        onStatusChangeRef.current?.('connected')
+        inFlightConnect.current = false
 
-    // Connection events
-    newSocket.on('connect', () => {
-      console.log('🔗 Socket.IO connected to Pi server')
-      setState(prev => ({
-        ...prev,
-        isConnected: true,
-        isConnecting: false,
-        lastError: null,
-        reconnectAttempts: 0
-      }))
-      onStatusChangeRef.current?.('connected')
-
-      // Process queued messages
-      while (messageQueue.current.length > 0) {
-        const queuedMessage = messageQueue.current.shift()
-        newSocket.emit('gemini:message', queuedMessage)
+        // Process queued messages
+        while (messageQueue.current.length > 0) {
+          const queuedMessage = messageQueue.current.shift()
+          if (queuedMessage) {
+            ws.send(JSON.stringify(queuedMessage))
+          }
+        }
       }
-    })
 
-    newSocket.on('disconnect', (reason) => {
-      console.log('🔌 Socket.IO disconnected:', reason)
-      setState(prev => ({
-        ...prev,
-        isConnected: false,
-        geminiConnected: false
-      }))
-      onStatusChangeRef.current?.('disconnected')
-    })
+      ws.onmessage = (event) => {
+        const handlePayload = (raw: string) => {
+          try {
+            const data = JSON.parse(raw)
 
-    newSocket.on('reconnect', (attemptNumber) => {
-      console.log(`🔄 Socket.IO reconnected after ${attemptNumber} attempts`)
-      setState(prev => ({
-        ...prev,
-        isConnected: true,
-        isConnecting: false,
-        reconnectAttempts: attemptNumber
-      }))
-      onStatusChangeRef.current?.('reconnected')
-    })
+            // Setup acknowledgement (different casings)
+            if (data.setupComplete === true || data.setup_complete === true) {
+              setState(prev => ({ ...prev, geminiConnected: true }))
+              onStatusChangeRef.current?.('gemini_connected')
+              return
+            }
 
-    newSocket.on('reconnect_attempt', (attemptNumber) => {
-      console.log(`🔄 Socket.IO reconnection attempt ${attemptNumber}`)
-      setState(prev => ({
-        ...prev,
-        isConnecting: true,
-        reconnectAttempts: attemptNumber
-      }))
-      onStatusChangeRef.current?.('reconnecting')
-    })
+            // Server content mapping
+            const serverContent = data.serverContent || data.server_content
+            const modelTurn = serverContent?.modelTurn || serverContent?.model_turn
+            const parts = modelTurn?.parts
+            if (Array.isArray(parts)) {
+              if (!state.geminiConnected) {
+                setState(prev => ({ ...prev, geminiConnected: true }))
+                onStatusChangeRef.current?.('gemini_connected')
+              }
+              const firstText = parts.find((p: any) => typeof p.text === 'string')?.text
+              if (firstText) {
+                console.log('📨 Received Gemini response')
+                onGeminiResponseRef.current?.({ text: firstText } as any)
+                return
+              }
+            }
+          } catch (error) {
+            console.error('❌ Error parsing WebSocket message:', error)
+          }
+        }
 
-    newSocket.on('reconnect_failed', () => {
-      console.error('❌ Socket.IO reconnection failed')
-      setState(prev => ({
-        ...prev,
-        isConnecting: false,
-        lastError: 'Reconnection failed after maximum attempts'
-      }))
-      onStatusChangeRef.current?.('failed')
-    })
+        if (typeof event.data === 'string') {
+          handlePayload(event.data)
+        } else if (event.data instanceof Blob) {
+          event.data.text().then(handlePayload).catch(err => {
+            console.error('❌ Error reading Blob message:', err)
+          })
+        } else if (event.data instanceof ArrayBuffer) {
+          try {
+            const text = new TextDecoder().decode(event.data)
+            handlePayload(text)
+          } catch (err) {
+            console.error('❌ Error decoding ArrayBuffer message:', err)
+          }
+        } else {
+          console.warn('⚠️ Unknown message type from WS:', typeof event.data)
+        }
+      }
 
-    // Gemini Live events
-    newSocket.on('gemini:connected', (data) => {
-      console.log('🤖 Gemini Live connected via Socket.IO')
-      setState(prev => ({ ...prev, geminiConnected: true }))
-      onStatusChangeRef.current?.('gemini_connected')
-    })
+      ws.onclose = (event) => {
+        console.log('🔌 WebSocket disconnected:', event.code, event.reason)
+        setState(prev => ({
+          ...prev,
+          isConnected: false,
+          geminiConnected: false,
+          isConnecting: false
+        }))
+        onStatusChangeRef.current?.('disconnected')
+        inFlightConnect.current = false
 
-    newSocket.on('gemini:disconnected', (data) => {
-      console.log('🔌 Gemini Live disconnected:', data.reason)
-      setState(prev => ({ ...prev, geminiConnected: false }))
-      onStatusChangeRef.current?.('gemini_disconnected')
-    })
+        // Clear heartbeat (not used with Gemini Live schema)
+        if (heartbeatInterval.current) {
+          clearInterval(heartbeatInterval.current)
+          heartbeatInterval.current = null
+        }
 
-    newSocket.on('gemini:response', (response: GeminiResponse) => {
-      console.log('📨 Received Gemini response via Socket.IO')
-      onGeminiResponseRef.current?.(response)
-    })
+        // Allow setup to be sent again on next connect
+        setupQueuedOrSent.current = false
 
-    newSocket.on('gemini:error', (error) => {
-      console.error('❌ Gemini error via Socket.IO:', error)
+        // Stop reconnecting for policy violations (e.g., wrong model)
+        if (event.code === 1008) {
+          setState(prev => ({
+            ...prev,
+            lastError: event.reason || 'Policy error (1008)'
+          }))
+          return
+        }
+
+        // Auto-reconnect with exponential backoff
+        if (state.reconnectAttempts < 10) {
+          const delay = Math.min(1000 * Math.pow(2, state.reconnectAttempts), 30000)
+          console.log(`🔄 Reconnecting in ${delay}ms (attempt ${state.reconnectAttempts + 1})`)
+          
+          reconnectTimeout.current = setTimeout(() => {
+            setState(prev => ({ ...prev, reconnectAttempts: prev.reconnectAttempts + 1 }))
+            onStatusChangeRef.current?.('reconnecting')
+            connect()
+          }, delay)
+        } else {
+          setState(prev => ({ 
+            ...prev, 
+            lastError: 'Max reconnection attempts reached',
+            reconnectAttempts: 0
+          }))
+          onStatusChangeRef.current?.('failed')
+        }
+      }
+
+      ws.onerror = (error) => {
+        console.error('❌ WebSocket error:', error)
+        setState(prev => ({ 
+          ...prev, 
+          lastError: 'Connection error',
+          isConnecting: false
+        }))
+        inFlightConnect.current = false
+      }
+
+      wsRef.current = ws
+    } catch (error) {
+      console.error('❌ Failed to connect:', error)
       setState(prev => ({ 
         ...prev, 
-        lastError: error.error || 'Gemini connection error',
-        geminiConnected: false
-      }))
-    })
-
-    // Pi status updates
-    newSocket.on('pi:status', (status) => {
-      console.log('📊 Pi status update:', status)
-    })
-
-    // Canvas collaboration events
-    newSocket.on('canvas:update', (canvasData) => {
-      console.log('🎨 Canvas update from collaboration')
-      // Handle collaborative canvas updates here if needed
-    })
-
-    // Error handling
-    newSocket.on('error', (error) => {
-      console.error('❌ Socket.IO error:', error)
-      setState(prev => ({ 
-        ...prev, 
-        lastError: error.message || 'Connection error',
+        lastError: error instanceof Error ? error.message : 'Connection failed',
         isConnecting: false
       }))
-    })
-
-    setSocket(newSocket)
-  }, [socket])
-
-  // Setup Gemini Live connection
-  const setupGemini = useCallback((config: Record<string, unknown>) => {
-    if (socket?.connected) {
-      socket.emit('gemini:setup', config)
-    } else {
-      console.warn('⚠️  Socket not connected, queuing Gemini setup')
+      inFlightConnect.current = false
     }
-  }, [socket])
+  }, [getWebSocketUrl, state.reconnectAttempts, liveDisabled])
 
-  // Send message to Gemini Live
-  const sendToGemini = useCallback((message: Record<string, unknown>) => {
-    if (socket?.connected && state.geminiConnected) {
-      socket.emit('gemini:message', message)
-    } else {
-      console.log('📦 Queuing message for Gemini (disconnected)')
-      messageQueue.current.push(message)
-      
-      // Try to reconnect if not connected
-      if (!socket?.connected) {
-        connect()
+  // Setup Gemini Live connection (maps to BidiGenerateContent schema)
+  const setupGemini = useCallback((rawConfig: Record<string, unknown>) => {
+    if (setupQueuedOrSent.current) return
+    const cfg = rawConfig as Record<string, any>
+    const setup: any = {
+      generationConfig: {
+        temperature: Number(cfg?.generationConfig?.temperature ?? 0.7),
+        maxOutputTokens: Number(cfg?.generationConfig?.maxOutputTokens ?? 96)
+      },
+      systemInstruction: {
+        parts: [{ text: String(cfg.systemInstruction ?? '') }]
       }
     }
-  }, [socket, state.geminiConnected, connect])
+    if (typeof cfg.model === 'string' && cfg.model.trim()) {
+      setup.model = cfg.model.startsWith('models/') ? cfg.model : `models/${cfg.model}`
+    }
+    const payload = { setup }
+
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(payload))
+      setupQueuedOrSent.current = true
+    } else {
+      console.warn('⚠️  WebSocket not connected, queuing Gemini setup')
+      messageQueue.current.push(payload)
+      setupQueuedOrSent.current = true
+    }
+  }, [])
+
+  // Send message to Gemini Live (map to client_content)
+  const sendToGemini = useCallback((message: Record<string, unknown>) => {
+    const msg = message as Record<string, any>
+    let text: string | undefined
+    if (typeof msg.text === 'string') text = msg.text
+    else if (Array.isArray(msg.contents) && msg.contents[0]?.parts?.[0]?.text) text = String(msg.contents[0].parts[0].text)
+
+    const payload = {
+      clientContent: {
+        turns: [
+          {
+            role: 'user',
+            parts: text ? [{ text }] : []
+          }
+        ],
+        turnComplete: true
+      }
+    }
+
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(payload))
+    } else {
+      console.log('📦 Queuing message for Gemini (disconnected)')
+      messageQueue.current.push(payload)
+      // Do not auto-connect here; connection is triggered explicitly by Start Pi
+    }
+  }, [connect])
 
   // Send canvas update
   const sendCanvasUpdate = useCallback((canvasData: Record<string, unknown>) => {
-    if (socket?.connected) {
-      socket.emit('gemini:canvas', canvasData)
+    const payload = {
+      clientContent: {
+        turns: [
+          {
+            role: 'user',
+            parts: [
+              {
+                inlineData: {
+                  mimeType: 'image/png',
+                  data: String(canvasData?.base64Png ?? '')
+                }
+              }
+            ]
+          }
+        ],
+        turnComplete: true
+      }
+    }
+
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(payload))
     } else {
       console.log('📦 Canvas update queued (disconnected)')
+      messageQueue.current.push(payload)
     }
-  }, [socket])
+  }, [])
 
   // Disconnect
   const disconnect = useCallback(() => {
-    if (socket) {
-      socket.disconnect()
-      setSocket(null)
+    if (reconnectTimeout.current) {
+      clearTimeout(reconnectTimeout.current)
+      reconnectTimeout.current = null
     }
+    
+    if (heartbeatInterval.current) {
+      clearInterval(heartbeatInterval.current)
+      heartbeatInterval.current = null
+    }
+    
+    if (wsRef.current) {
+      wsRef.current.close()
+      wsRef.current = null
+    }
+    
     setState({
       isConnected: false,
       isConnecting: false,
@@ -231,23 +352,21 @@ export function useSocketIO(
       geminiConnected: false,
       reconnectAttempts: 0
     })
-  }, [socket])
+  }, [])
 
-  // Auto-connect on mount
+  // Expose manual connect; cleanup on unmount
   useEffect(() => {
-    connect()
-    
     return () => {
       disconnect()
     }
-  }, [connect, disconnect]) // Include dependencies
+  }, [disconnect])
 
   return {
-    socket,
     state,
     sendToGemini,
     sendCanvasUpdate,
     setupGemini,
+    connect,
     disconnect
   }
 }

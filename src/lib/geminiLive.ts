@@ -329,7 +329,9 @@ class GeminiLiveClient {
     try {
       // Use getDisplayMedia for screen sharing
       // Note: In a real implementation, we'd want to capture just the canvas area
-      this.mediaStream = await navigator.mediaDevices.getDisplayMedia({
+      const getDM = navigator.mediaDevices.getDisplayMedia?.bind(navigator.mediaDevices)
+      if (!getDM) throw new Error('getDisplayMedia not supported')
+      this.mediaStream = await getDM({
         video: {
           mediaSource: 'screen',
           width: { ideal: 1280 },
@@ -381,7 +383,8 @@ class GeminiLiveClient {
     if (!this.isClient) return false
 
     try {
-      const audioStream = await navigator.mediaDevices.getUserMedia({
+      const getUM = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices)
+      const audioStream = await getUM({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
