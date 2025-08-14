@@ -141,6 +141,14 @@ export function useGeminiLiveTutor() {
     // Initialize connection
     geminiLiveClient.connect()
 
+    // Auto-start voice when requested by dialog
+    const handleVoiceAutoStart = () => {
+      if (!tutor.streamingAudio) {
+        tutor.startVoiceChat()
+      }
+    }
+    window.addEventListener('simili-voice-auto-start', handleVoiceAutoStart)
+
     return () => {
       // Cleanup
       geminiLiveClient.off('connected')
@@ -156,6 +164,7 @@ export function useGeminiLiveTutor() {
       window.removeEventListener('simili-annotation', handleCanvasAnnotation as EventListener)
       
       geminiLiveClient.disconnect()
+      window.removeEventListener('simili-voice-auto-start', handleVoiceAutoStart)
     }
   }, [])
 

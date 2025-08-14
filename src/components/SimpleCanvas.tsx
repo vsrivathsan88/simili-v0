@@ -285,7 +285,13 @@ const SimpleCanvas = ({ onPathsChange, onShapeDetected }: SimpleCanvasProps) => 
           img.onerror = (e) => { URL.revokeObjectURL(url); reject(e) }
           img.src = url
         })
-        return canvas.toDataURL('image/png').split(',')[1] || null
+        const dataUrl = canvas.toDataURL('image/png')
+        const base64 = dataUrl.split(',')[1] || null
+        // Guard: ensure PNG header present (iVBORw0KGgo)
+        if (base64 && !base64.startsWith('iVBORw0KGgo')) return null
+        // Guard: minimum payload size to avoid invalid image errors
+        if (base64 && base64.length < 128) return null
+        return base64
       } catch {
         return null
       }

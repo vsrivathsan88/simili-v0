@@ -13,12 +13,21 @@ export default function SessionStartDialog({ isOpen, onStart, onSkip }: SessionS
   const [enableVoice, setEnableVoice] = useState(true)
   const [hasPermissions, setHasPermissions] = useState(false)
   const [quick, setQuick] = useState<null | 'draw' | 'measure' | 'explain'>(null)
+  const [challengeIdx, setChallengeIdx] = useState(0)
 
   useEffect(() => {
     // Check if browser supports voice (boolean), avoid passing function to setState
     const supportsVoice = typeof navigator !== 'undefined' &&
       !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function')
     setHasPermissions(supportsVoice)
+  }, [])
+
+  // Rotate a tiny "First challenge" teaser
+  useEffect(() => {
+    const id = setInterval(() => {
+      setChallengeIdx((i) => (i + 1) % 3)
+    }, 3000)
+    return () => clearInterval(id)
   }, [])
 
   const handleStart = async () => {
@@ -42,6 +51,10 @@ export default function SessionStartDialog({ isOpen, onStart, onSkip }: SessionS
         window.dispatchEvent(new CustomEvent('simili-mode-change', { detail: { mode: 'pointer' } }))
       } else if (quick === 'explain') {
         window.dispatchEvent(new CustomEvent('simili-mode-change', { detail: { mode: 'pointer' } }))
+      }
+      // Auto-start voice after entering (if enabled)
+      if (enableVoice) {
+        window.dispatchEvent(new CustomEvent('simili-voice-auto-start'))
       }
     } catch {}
     onStart(enableVoice)
