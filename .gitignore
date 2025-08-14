@@ -52,3 +52,14 @@ next-env.d.ts
 **/*.pem
 **/*.p12
 secrets.json
+
+# Local environment files
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Do not commit real keys in examples
+.env.example.local
