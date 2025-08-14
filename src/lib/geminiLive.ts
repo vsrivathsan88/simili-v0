@@ -126,7 +126,7 @@ class GeminiLiveClient {
     if (!this.socket || !this.isConnected) return
 
     const config: GeminiLiveConfig = {
-      model: "gemini-2.0-flash-exp",
+      model: "gemini-2.5-flash",
       voice: {
         style: "friendly_patient",
         speed: 0.95, // Slightly slower for kids

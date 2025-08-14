@@ -166,7 +166,7 @@ export class GeminiLiveWebSocketClient {
     const setupFrame = {
       setup: {
         // Live models expect the fully qualified name
-        model: 'models/gemini-2.0-flash-exp',
+        model: 'models/gemini-2.5-flash',
         generationConfig: {
           temperature: Number(process.env.NEXT_PUBLIC_GEMINI_TEMPERATURE ?? 0.7),
           maxOutputTokens: Number(process.env.NEXT_PUBLIC_GEMINI_MAX_TOKENS ?? 96)
