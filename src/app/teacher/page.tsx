@@ -188,6 +188,72 @@ export default function TeacherView() {
                 </div>
               </div>
 
+              {/* Summary metrics */}
+              {(() => {
+                const probs = sessionData?.problems || []
+                const stepsAll = probs.flatMap(p => p.reasoningSteps)
+                const phaseCounts: Record<string, number> = { hypothesis: 0, evidence: 0, revision: 0, check: 0 }
+                const classCounts: Record<string, number> = { correct: 0, partial: 0, incorrect: 0, exploring: 0 }
+                const tagCounts: Record<string, number> = {}
+                const conceptCounts: Record<string, number> = {}
+                stepsAll.forEach(s => {
+                  if (s.phase) phaseCounts[s.phase] = (phaseCounts[s.phase] || 0) + 1
+                  classCounts[s.classification] = (classCounts[s.classification] || 0) + 1
+                  if (Array.isArray(s.tags)) s.tags.forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1 })
+                  if (Array.isArray(s.concepts)) s.concepts.forEach(c => { conceptCounts[c] = (conceptCounts[c] || 0) + 1 })
+                })
+                const topTags = Object.entries(tagCounts).sort((a,b)=>b[1]-a[1]).slice(0,4)
+                const topConcepts = Object.entries(conceptCounts).sort((a,b)=>b[1]-a[1]).slice(0,4)
+                return (
+                  <div className="grid md:grid-cols-4 gap-3 mb-4">
+                    <div className="border border-gray-200 rounded-lg p-3">
+                      <div className="text-xs text-gray-500">Problems</div>
+                      <div className="text-xl font-semibold text-gray-800">{probs.length}</div>
+                    </div>
+                    <div className="border border-gray-200 rounded-lg p-3">
+                      <div className="text-xs text-gray-500">Steps</div>
+                      <div className="text-xl font-semibold text-gray-800">{stepsAll.length}</div>
+                    </div>
+                    <div className="border border-gray-200 rounded-lg p-3">
+                      <div className="text-xs text-gray-500 mb-1">Phases</div>
+                      <div className="flex flex-wrap gap-1 text-xs">
+                        {(['hypothesis','evidence','revision','check'] as const).map(ph => (
+                          <span key={ph} className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 capitalize">{ph}: {phaseCounts[ph]||0}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="border border-gray-200 rounded-lg p-3">
+                      <div className="text-xs text-gray-500 mb-1">Accuracy</div>
+                      <div className="flex flex-wrap gap-1 text-xs">
+                        {(['correct','partial','incorrect','exploring'] as const).map(k => (
+                          <span key={k} className={`px-2 py-0.5 rounded-full capitalize ${k==='correct'?'bg-green-100 text-green-700':k==='partial'?'bg-yellow-100 text-yellow-700':k==='incorrect'?'bg-orange-100 text-orange-700':'bg-purple-100 text-purple-700'}`}>{k}: {classCounts[k]||0}</span>
+                        ))}
+                      </div>
+                    </div>
+                    {topTags.length>0 && (
+                      <div className="md:col-span-2 border border-gray-200 rounded-lg p-3">
+                        <div className="text-xs text-gray-500 mb-1">Top Tags</div>
+                        <div className="flex flex-wrap gap-1 text-xs">
+                          {topTags.map(([t,c]) => (
+                            <span key={t} className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">{t} ({c})</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {topConcepts.length>0 && (
+                      <div className="md:col-span-2 border border-gray-200 rounded-lg p-3">
+                        <div className="text-xs text-gray-500 mb-1">Top Concepts</div>
+                        <div className="flex flex-wrap gap-1 text-xs">
+                          {topConcepts.map(([t,c]) => (
+                            <span key={t} className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 capitalize">{t.replace('_',' ')} ({c})</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
               {problemsTab === 'list' && (
                 <div className="grid md:grid-cols-2 gap-4">
                   {(sessionData?.problems || []).map((p) => {
