@@ -12,6 +12,7 @@ interface SessionStartDialogProps {
 export default function SessionStartDialog({ isOpen, onStart, onSkip }: SessionStartDialogProps) {
   const [enableVoice, setEnableVoice] = useState(false)
   const [hasPermissions, setHasPermissions] = useState(false)
+  const [quick, setQuick] = useState<null | 'draw' | 'measure' | 'explain'>(null)
 
   useEffect(() => {
     // Check if browser supports voice (boolean), avoid passing function to setState
@@ -31,6 +32,18 @@ export default function SessionStartDialog({ isOpen, onStart, onSkip }: SessionS
         console.warn('Microphone permission denied or unavailable:', e)
       }
     }
+
+    // Simple quick-start actions
+    try {
+      if (quick === 'draw') {
+        window.dispatchEvent(new CustomEvent('simili-mode-change', { detail: { mode: 'pencil' } }))
+      } else if (quick === 'measure') {
+        window.dispatchEvent(new CustomEvent('simili-add-manipulative', { detail: { type: 'number-line' } }))
+        window.dispatchEvent(new CustomEvent('simili-mode-change', { detail: { mode: 'pointer' } }))
+      } else if (quick === 'explain') {
+        window.dispatchEvent(new CustomEvent('simili-mode-change', { detail: { mode: 'pointer' } }))
+      }
+    } catch {}
     onStart(enableVoice)
   }
 
@@ -49,34 +62,48 @@ export default function SessionStartDialog({ isOpen, onStart, onSkip }: SessionS
           <div className="text-center mb-6">
             <div className="text-6xl mb-4">🔮</div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              Welcome to Pi Lab
+              Pi Lab
             </h2>
             <p className="text-gray-600">
-              Explore, test ideas, and check your work with a curious coach.
+              Sketch. Think. Check.
             </p>
           </div>
 
-          {/* Voice Option */}
-          {hasPermissions && (
-            <div className="bg-blue-50 rounded-lg p-4 mb-6">
-              <div className="flex items-start space-x-3">
-                <input
-                  type="checkbox"
-                  id="enableVoice"
-                  checked={enableVoice}
-                  onChange={(e) => setEnableVoice(e.target.checked)}
-                  className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <div className="flex-1">
-                  <label htmlFor="enableVoice" className="text-sm font-medium text-blue-900 cursor-pointer">
-                    🎤 Enable Voice (talk to Pi)
-                  </label>
-                  <p className="text-xs text-blue-700 mt-1">
-                     Explain your thinking out loud. Optional.
-                  </p>
-                </div>
-              </div>
+          {/* Quick-start chips */}
+          <div className="mb-6">
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: 'draw', label: 'Draw', emoji: '✏️' },
+                { id: 'measure', label: 'Measure', emoji: '📏' },
+                { id: 'explain', label: 'Explain', emoji: '💬' }
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setQuick(item.id as any)}
+                  className={`px-3 py-3 rounded-lg border text-sm font-medium transition-colors ${
+                    quick === item.id
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                  aria-pressed={quick === (item.id as any)}
+                >
+                  <span className="mr-1">{item.emoji}</span>{item.label}
+                </button>
+              ))}
             </div>
+          </div>
+
+          {/* Voice Option (compact) */}
+          {hasPermissions && (
+            <label className="flex items-center gap-2 mb-6 select-none cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enableVoice}
+                onChange={(e) => setEnableVoice(e.target.checked)}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">Add voice (optional)</span>
+            </label>
           )}
 
           {/* Features Preview */}
@@ -101,20 +128,14 @@ export default function SessionStartDialog({ isOpen, onStart, onSkip }: SessionS
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex space-x-3">
-            <button
-              onClick={onSkip}
-              className="flex-1 px-4 py-3 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
-            >
-              Skip for now
-            </button>
+          {/* Action */}
+          <div className="flex">
             <button
               onClick={handleStart}
-              className="flex-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+              className="w-full px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
             >
               <span>🚀</span>
-              <span>Enter Pi Lab</span>
+              <span>Enter</span>
             </button>
           </div>
 

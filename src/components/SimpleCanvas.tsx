@@ -383,11 +383,19 @@ const SimpleCanvas = ({ onPathsChange, onShapeDetected }: SimpleCanvasProps) => 
     window.addEventListener('simili-clear-canvas', handleClearCanvas)
     window.addEventListener('simili-undo', handleUndo)
     window.addEventListener('simili-redo', handleRedo)
+    // Quick-start manipulative from dialog
+    const handleAddManipulative = (e: any) => {
+      const type = e?.detail?.type as Manipulative['type']
+      if (!type) return
+      handleManipulativeSelect(type)
+    }
+    window.addEventListener('simili-add-manipulative', handleAddManipulative as EventListener)
     
     return () => {
       window.removeEventListener('simili-clear-canvas', handleClearCanvas)
       window.removeEventListener('simili-undo', handleUndo)
       window.removeEventListener('simili-redo', handleRedo)
+      window.removeEventListener('simili-add-manipulative', handleAddManipulative as EventListener)
     }
   }, [clearCanvas, undo, redo])
 
