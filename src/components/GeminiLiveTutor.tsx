@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { geminiLiveClient } from '@/lib/geminiLiveWebSocket'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useDailyVoice } from '@/lib/useDailyVoice'
 
 interface TutorMessage {
   id: string
@@ -228,6 +229,7 @@ interface GeminiLiveTutorProps {
 
 export default function GeminiLiveTutor({ className = '', autoStartVoice = false }: GeminiLiveTutorProps) {
   const tutor = useGeminiLiveTutor()
+  const daily = useDailyVoice()
   const [studentInput, setStudentInput] = useState('')
   const [showVoiceButton, setShowVoiceButton] = useState(false)
 
@@ -240,11 +242,14 @@ export default function GeminiLiveTutor({ className = '', autoStartVoice = false
     
     // Auto-start voice if requested and supported
     if (autoStartVoice && hasVoiceSupport && tutor.connected && tutor.setupComplete && !tutor.streamingAudio) {
-      setTimeout(() => {
-        tutor.startVoiceChat()
-      }, 1000) // Small delay to ensure everything is ready
+      setTimeout(async () => {
+        // Join Daily room (audio-only)
+        await daily.join()
+        // Start local audio stream to Live
+        await tutor.startVoiceChat()
+      }, 1000)
     }
-  }, [autoStartVoice, tutor.connected, tutor.setupComplete, tutor.streamingAudio])
+  }, [autoStartVoice, tutor.connected, tutor.setupComplete, tutor.streamingAudio, daily])
 
   const handleSendMessage = () => {
     if (studentInput.trim()) {
@@ -348,10 +353,15 @@ export default function GeminiLiveTutor({ className = '', autoStartVoice = false
           </button>
         </div>
 
-        {/* Voice chat button */}
+      {/* Voice chat button */}
         {showVoiceButton && (
           <button
-            onClick={tutor.startVoiceChat}
+          onClick={async () => {
+            if (daily.status !== 'joined') {
+              await daily.join()
+            }
+            await tutor.startVoiceChat()
+          }}
             disabled={!tutor.setupComplete || tutor.streamingAudio}
             className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
               tutor.streamingAudio
@@ -359,7 +369,7 @@ export default function GeminiLiveTutor({ className = '', autoStartVoice = false
                 : 'bg-green-500 text-white hover:bg-green-600'
             } disabled:bg-gray-300 disabled:cursor-not-allowed`}
           >
-            {tutor.streamingAudio ? '🎤 Voice Chat Active' : '🎤 Start Voice Chat'}
+          {tutor.streamingAudio ? '🎤 Voice Chat Active' : '🎤 Start Voice Chat'} {daily.status === 'joined' ? '• Pipecat' : ''}
           </button>
         )}
       </div>
