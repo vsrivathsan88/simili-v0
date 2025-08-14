@@ -108,7 +108,7 @@ const ProgressDashboard = ({ isOpen, onClose }: ProgressDashboardProps) => {
                   {progress.overallStats.conceptsMastered.length}
                 </div>
                 <div className="text-purple-700 font-medium">Concepts Mastered</div>
-                <div className="text-sm text-purple-600">Advanced level achieved</div>
+                <div className="text-sm text-purple-600">Investigator level achieved</div>
               </div>
 
               {/* Favorite Tools */}
@@ -201,7 +201,7 @@ const ProgressDashboard = ({ isOpen, onClose }: ProgressDashboardProps) => {
                         {concept.replace('_', ' ')}
                       </h4>
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${getLevelColor(data.level)}`}>
-                        {data.level}
+                        {data.level === 'beginner' ? 'Apprentice' : data.level === 'developing' ? 'Investigator' : data.level === 'proficient' ? 'Analyst' : 'Specialist'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm text-gray-600">

@@ -55,8 +55,8 @@ const CanvasToolbar = ({
               ? 'bg-blue-500 text-white shadow-sm' 
               : 'bg-transparent text-gray-600 hover:bg-gray-200'
           }`}
-          aria-label="Pointer tool - interact with widgets"
-          title="Pointer: Click and drag widgets"
+          aria-label="Pointer tool - interact with lab tools"
+          title="Pointer: Move and adjust lab tools"
         >
           🖱️
         </button>
@@ -68,7 +68,7 @@ const CanvasToolbar = ({
               : 'bg-transparent text-gray-600 hover:bg-gray-200'
           }`}
           aria-label="Pencil tool - draw on canvas"
-          title="Pencil: Draw and sketch"
+          title="Pencil: Sketch ideas"
         >
           ✏️
         </button>
@@ -89,7 +89,7 @@ const CanvasToolbar = ({
                   : 'bg-transparent text-gray-600 hover:bg-gray-200'
               }`}
               aria-label="Pen tool"
-              title="Pen: Draw with color"
+              title="Pen: Draw with color (shortcut: P)"
             >
               ✏️
             </button>
@@ -101,7 +101,7 @@ const CanvasToolbar = ({
                   : 'bg-transparent text-gray-600 hover:bg-gray-200'
               }`}
               aria-label="Eraser tool"
-              title="Eraser: Remove drawings"
+              title="Eraser: Remove drawings (shortcut: E)"
             >
               🗑️
             </button>
@@ -138,13 +138,13 @@ const CanvasToolbar = ({
           <div className="flex items-center gap-1">
             <AccessibleButton
               variant="ghost" size="sm" onClick={onUndo} disabled={!canUndo}
-              aria-label="Undo last action" className="w-10 h-10"
+              aria-label="Undo last action" className="w-10 h-10" title="Undo (Ctrl/⌘+Z)"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
             </AccessibleButton>
             <AccessibleButton
               variant="ghost" size="sm" onClick={onRedo} disabled={!canRedo}
-              aria-label="Redo last action" className="w-10 h-10"
+              aria-label="Redo last action" className="w-10 h-10" title="Redo (Ctrl/⌘+Shift+Z)"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6" /></svg>
             </AccessibleButton>
@@ -167,7 +167,7 @@ const CanvasToolbar = ({
       {/* Insert Manipulative Button */}
       <AccessibleButton
         variant="secondary" size="sm" onClick={onInsert}
-        aria-label="Insert manipulative" className="w-10 h-10 font-bold text-lg"
+        aria-label="Insert lab tool" className="w-10 h-10 font-bold text-lg" title="Insert Lab Tool (shortcut: I)"
       >
         +
       </AccessibleButton>

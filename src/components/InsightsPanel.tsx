@@ -67,7 +67,7 @@ const InsightsPanel = ({ isOpen, onClose, sessionStarted }: InsightsPanelProps) 
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-line">
           <h2 id="insights-title" className="text-xl font-bold text-ink font-handwritten">
-            Insights & Reasoning
+            Pi Lab • Insights
           </h2>
           <AccessibleButton
             variant="ghost"
@@ -103,7 +103,7 @@ const InsightsPanel = ({ isOpen, onClose, sessionStarted }: InsightsPanelProps) 
             }`}
             aria-pressed={activeTab === 'steps'}
           >
-            Step Log
+            Strategy Log
           </button>
         </div>
 
@@ -144,12 +144,12 @@ const InsightsPanel = ({ isOpen, onClose, sessionStarted }: InsightsPanelProps) 
                     <div className="space-y-2">
                       <div className="p-3 bg-success/10 border border-success/20 rounded-lg">
                         <p className="text-sm text-ink font-casual">
-                          ✅ Student shows systematic approach to problem-solving
+                          ✅ Clear plan → execute → check loop observed
                         </p>
                       </div>
                       <div className="p-3 bg-info/10 border border-info/20 rounded-lg">
                         <p className="text-sm text-ink font-casual">
-                          💡 Evidence of metacognitive thinking (self-correction)
+                          💡 Evidence of revision after a bug was found
                         </p>
                       </div>
                     </div>

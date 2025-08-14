@@ -128,11 +128,15 @@ export function useGeminiLiveTutor() {
     geminiLiveClient.on('connected', handleConnected)
     geminiLiveClient.on('disconnected', handleDisconnected)
     geminiLiveClient.on('setup-complete', handleSetupComplete)
-    
+
+    // Support both current and legacy event names
     window.addEventListener('simili-pi-response', handlePiResponse as EventListener)
     window.addEventListener('simili-hint-suggested', handleHintSuggested as EventListener)
+    window.addEventListener('simili-hint', handleHintSuggested as EventListener)
     window.addEventListener('simili-celebrate', handleCelebration as EventListener)
+    window.addEventListener('simili-celebration', handleCelebration as EventListener)
     window.addEventListener('simili-canvas-annotation', handleCanvasAnnotation as EventListener)
+    window.addEventListener('simili-annotation', handleCanvasAnnotation as EventListener)
 
     // Initialize connection
     geminiLiveClient.connect()
@@ -145,8 +149,11 @@ export function useGeminiLiveTutor() {
       
       window.removeEventListener('simili-pi-response', handlePiResponse as EventListener)
       window.removeEventListener('simili-hint-suggested', handleHintSuggested as EventListener)
+      window.removeEventListener('simili-hint', handleHintSuggested as EventListener)
       window.removeEventListener('simili-celebrate', handleCelebration as EventListener)
+      window.removeEventListener('simili-celebration', handleCelebration as EventListener)
       window.removeEventListener('simili-canvas-annotation', handleCanvasAnnotation as EventListener)
+      window.removeEventListener('simili-annotation', handleCanvasAnnotation as EventListener)
       
       geminiLiveClient.disconnect()
     }
@@ -247,8 +254,8 @@ export default function GeminiLiveTutor({ className = '', autoStartVoice = false
 
   const getMessageIcon = (type: TutorMessage['type']) => {
     switch (type) {
-      case 'hint': return '💡'
-      case 'celebration': return '🎉'
+      case 'hint': return '🧭' // nudge icon feel
+      case 'celebration': return '✨'
       case 'question': return '❓'
       default: return '🔮'
     }
@@ -257,7 +264,7 @@ export default function GeminiLiveTutor({ className = '', autoStartVoice = false
   const getMessageStyle = (type: TutorMessage['type']) => {
     switch (type) {
       case 'hint': return 'bg-blue-50 border-blue-200 text-blue-800'
-      case 'celebration': return 'bg-green-50 border-green-200 text-green-800'
+      case 'celebration': return 'bg-purple-50 border-purple-200 text-purple-800'
       case 'question': return 'bg-purple-50 border-purple-200 text-purple-800'
       default: return 'bg-gray-50 border-gray-200 text-gray-800'
     }

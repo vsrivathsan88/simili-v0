@@ -52,10 +52,10 @@ export default function SessionStartDialog({ isOpen, onStart, onSkip }: SessionS
           <div className="text-center mb-6">
             <div className="text-6xl mb-4">🔮</div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              Meet Pi, Your Math Tutor!
+              Welcome to Pi Lab
             </h2>
             <p className="text-gray-600">
-              Pi can see your drawings and help you explore math concepts in real-time.
+              Explore, test ideas, and check your work with a curious coach.
             </p>
           </div>
 
@@ -72,10 +72,10 @@ export default function SessionStartDialog({ isOpen, onStart, onSkip }: SessionS
                 />
                 <div className="flex-1">
                   <label htmlFor="enableVoice" className="text-sm font-medium text-blue-900 cursor-pointer">
-                    🎤 Enable Voice Chat
+                    🎤 Enable Voice (talk to Pi)
                   </label>
                   <p className="text-xs text-blue-700 mt-1">
-                    Talk to Pi about your mathematical thinking! (Optional)
+                     Explain your thinking out loud. Optional.
                   </p>
                 </div>
               </div>
@@ -88,13 +88,13 @@ export default function SessionStartDialog({ isOpen, onStart, onSkip }: SessionS
               <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                 <span className="text-green-600">✓</span>
               </div>
-              <span className="text-gray-700">Pi watches your canvas and provides hints</span>
+              <span className="text-gray-700">Pi watches your canvas and offers nudges</span>
             </div>
             <div className="flex items-center space-x-3 text-sm">
               <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                 <span className="text-green-600">✓</span>
               </div>
-              <span className="text-gray-700">Ask questions anytime through chat</span>
+              <span className="text-gray-700">Ask questions anytime in chat</span>
             </div>
             <div className="flex items-center space-x-3 text-sm">
               <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -117,13 +117,13 @@ export default function SessionStartDialog({ isOpen, onStart, onSkip }: SessionS
               className="flex-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
             >
               <span>🚀</span>
-              <span>Start Learning with Pi</span>
+              <span>Enter Pi Lab</span>
             </button>
           </div>
 
           {/* Privacy Note */}
           <p className="text-xs text-gray-500 text-center mt-4">
-            Pi only sees your drawings during this session. No data is stored permanently.
+            Your work stays on this device for this session only.
           </p>
         </motion.div>
       </div>

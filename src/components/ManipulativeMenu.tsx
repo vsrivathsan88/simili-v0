@@ -30,10 +30,10 @@ const ManipulativeMenu = ({ isOpen, onClose, onSelect, anchorRef }: Manipulative
       {/* Menu */}
       <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-40 bg-white/95 backdrop-blur-lg rounded-xl border border-white/30 shadow-2xl p-3 min-w-[220px]">
         <div className="text-sm font-bold text-gray-800 px-2 py-2 border-b border-gray-100 text-center" style={{ fontFamily: 'Kalam, cursive' }}>
-          📐 Choose a Math Tool
+          🔬 Pi Lab Tools
         </div>
         <div className="text-xs text-gray-500 px-2 py-1 text-center">
-          Click to add to your canvas
+          Add to your workspace
         </div>
         
         <div className="py-2 space-y-1">
@@ -45,7 +45,7 @@ const ManipulativeMenu = ({ isOpen, onClose, onSelect, anchorRef }: Manipulative
               <span className="text-xl">🟨</span>
               <div>
                 <div className="font-medium text-gray-800">Fraction Bar</div>
-                <div className="text-xs text-gray-500">Explore parts of a whole</div>
+                <div className="text-xs text-gray-500">Model parts • compare ratios</div>
               </div>
             </div>
           </button>
@@ -58,7 +58,7 @@ const ManipulativeMenu = ({ isOpen, onClose, onSelect, anchorRef }: Manipulative
               <span className="text-xl">📏</span>
               <div>
                 <div className="font-medium text-gray-800">Number Line</div>
-                <div className="text-xs text-gray-500">Place markers & explore</div>
+                <div className="text-xs text-gray-500">Measure • compare intervals</div>
               </div>
             </div>
           </button>
@@ -71,7 +71,7 @@ const ManipulativeMenu = ({ isOpen, onClose, onSelect, anchorRef }: Manipulative
               <span className="text-xl">📊</span>
               <div>
                 <div className="font-medium text-gray-800">Graph Paper</div>
-                <div className="text-xs text-gray-500">Plot points & coordinates</div>
+                <div className="text-xs text-gray-500">Plot points • coordinates</div>
               </div>
             </div>
           </button>
@@ -86,7 +86,7 @@ const ManipulativeMenu = ({ isOpen, onClose, onSelect, anchorRef }: Manipulative
               <span className="text-xl">⚪</span>
               <div>
                 <div className="font-medium text-gray-800">Circle Tool</div>
-                <div className="text-xs text-gray-500">Explore radius & area</div>
+                <div className="text-xs text-gray-500">Investigate radius • area</div>
               </div>
             </div>
           </button>
@@ -98,8 +98,8 @@ const ManipulativeMenu = ({ isOpen, onClose, onSelect, anchorRef }: Manipulative
             <div className="flex items-center gap-3">
               <span className="text-xl">🧮</span>
               <div>
-                <div className="font-medium text-gray-800">Calculator</div>
-                <div className="text-xs text-gray-500">Step-by-step math</div>
+                <div className="font-medium text-gray-800">Notebook Calc</div>
+                <div className="text-xs text-gray-500">Show your steps clearly</div>
               </div>
             </div>
           </button>

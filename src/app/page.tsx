@@ -126,12 +126,12 @@ export default function Home() {
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-ink flex items-center gap-2" style={{ fontFamily: 'Caveat, cursive' }}>
             <span>📚</span>
-            <span>Simili</span>
+            <span>Pi Lab</span>
           </h1>
           {ambientAgentActive && (
             <div className="flex items-center gap-2 text-sm">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-gray-600">Pi is helping</span>
+              <span className="text-gray-600">Pi is observing</span>
             </div>
           )}
         </div>
@@ -199,12 +199,12 @@ export default function Home() {
       
             {/* Main Content Container - Photo + Canvas Focus */}
       <main className="flex-grow flex flex-row overflow-hidden p-2 pt-0 gap-2">
-        {/* Photo Panel (30%) - Real world math connection */}
+          {/* Photo Panel (30%) - Real world math connection */}
         <div className="w-[30%] h-full">
           <PhotoPanel />
         </div>
 
-        {/* Main Canvas Area (70%) - Drawing + Widgets */}
+          {/* Main Canvas Area (70%) - Drawing + Widgets */}
         <div className="w-[70%] h-full relative">
           <SimiliCanvas />
         </div>

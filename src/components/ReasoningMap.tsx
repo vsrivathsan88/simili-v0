@@ -121,7 +121,7 @@ const ReasoningMap = ({ className = '', isVisible }: ReasoningMapProps) => {
           }}
         />
         
-        {/* Step number */}
+         {/* Step number */}
         <circle
           cx={x - width / 3}
           cy={y - height / 3}
@@ -141,17 +141,17 @@ const ReasoningMap = ({ className = '', isVisible }: ReasoningMapProps) => {
           {index + 1}
         </text>
         
-        {/* Step classification icon */}
+         {/* Step classification icon */}
         <text
           x={x}
           y={y - 10}
           textAnchor="middle"
           fontSize="20"
         >
-          {step.classification === 'correct' ? '✓' :
-           step.classification === 'partial' ? '⚡' :
-           step.classification === 'incorrect' ? '🌟' : // Star for learning!
-           '🔍'}
+           {step.classification === 'correct' ? '✔︎' :
+            step.classification === 'partial' ? '⚙︎' :
+            step.classification === 'incorrect' ? '↺' :
+            '🔎'}
         </text>
         
         {/* Truncated transcript */}
@@ -200,7 +200,7 @@ const ReasoningMap = ({ className = '', isVisible }: ReasoningMapProps) => {
         <div className="flex items-center gap-2 mb-3">
           <span className="text-lg">🧠</span>
           <h3 className="text-lg font-semibold text-gray-800" style={{ fontFamily: designSystem.fonts?.casual || 'Kalam, cursive' }}>
-            Your Thinking Journey
+            Strategy Timeline
           </h3>
         </div>
         
@@ -208,8 +208,8 @@ const ReasoningMap = ({ className = '', isVisible }: ReasoningMapProps) => {
           {steps.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <div className="text-4xl mb-2">🧠</div>
-              <div className="text-sm">Start thinking out loud...</div>
-              <div className="text-xs mt-1">Pi will capture your reasoning steps here</div>
+              <div className="text-sm">Explain your move, then your check.</div>
+              <div className="text-xs mt-1">Pi records Hypothesis → Evidence → Revision → Check</div>
             </div>
           ) : (
             <svg
@@ -242,44 +242,44 @@ const ReasoningMap = ({ className = '', isVisible }: ReasoningMapProps) => {
           )}
         </div>
         
-        {/* Legend */}
+         {/* Legend */}
         <div className="flex items-center gap-4 mt-3 text-xs text-gray-600">
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full bg-green-200 border border-green-500"></div>
-            <span>Correct</span>
+            <span>Hypothesis confirmed</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full bg-yellow-200 border border-yellow-500"></div>
-            <span>Partial</span>
+            <span>Evidence gathered</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full bg-orange-200 border border-orange-500"></div>
-            <span>Learning!</span>
+            <span>Revision</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full bg-purple-200 border border-purple-500"></div>
-            <span>Exploring</span>
+            <span>Exploring / Check</span>
           </div>
         </div>
         
         {/* Journey stats */}
         <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-          <div className="grid grid-cols-3 gap-4 text-center text-sm">
+            <div className="grid grid-cols-3 gap-4 text-center text-sm">
             <div>
               <div className="font-semibold text-gray-800">{steps.length}</div>
-              <div className="text-gray-600">Steps</div>
+              <div className="text-gray-600">Steps logged</div>
             </div>
             <div>
               <div className="font-semibold text-gray-800">
                 {steps.filter(s => s.classification === 'correct').length}
               </div>
-              <div className="text-gray-600">Correct</div>
+              <div className="text-gray-600">Checks passed</div>
             </div>
             <div>
               <div className="font-semibold text-gray-800">
                 {new Set(steps.flatMap(s => s.concepts)).size}
               </div>
-              <div className="text-gray-600">Concepts</div>
+              <div className="text-gray-600">Concepts tagged</div>
             </div>
           </div>
         </div>
