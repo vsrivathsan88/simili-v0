@@ -27,16 +27,17 @@ export async function POST(request: Request) {
     switch (action) {
       case 'get-gemini-url':
         // Return Gemini Live WebSocket URL for client-side connection
-        const apiKey = process.env.GEMINI_API_KEY
-        if (!apiKey) {
-          return NextResponse.json(
-            { error: 'Gemini API key not configured' },
-            { status: 500 }
-          )
+        {
+          const apiKey = process.env.GEMINI_API_KEY
+          if (!apiKey) {
+            return NextResponse.json(
+              { error: 'Gemini API key not configured' },
+              { status: 500 }
+            )
+          }
+          const serviceUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`
+          return NextResponse.json({ wsUrl: serviceUrl })
         }
-        
-        const wsUrl = `wss://generativelanguage.googleapis.com/ws/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`
-        return NextResponse.json({ wsUrl })
       
       case 'validate-connection':
         // Test API connectivity
