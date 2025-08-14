@@ -10,7 +10,7 @@ interface SessionStartDialogProps {
 }
 
 export default function SessionStartDialog({ isOpen, onStart, onSkip }: SessionStartDialogProps) {
-  const [enableVoice, setEnableVoice] = useState(false)
+  const [enableVoice, setEnableVoice] = useState(true)
   const [hasPermissions, setHasPermissions] = useState(false)
   const [quick, setQuick] = useState<null | 'draw' | 'measure' | 'explain'>(null)
 
@@ -93,6 +93,22 @@ export default function SessionStartDialog({ isOpen, onStart, onSkip }: SessionS
             </div>
           </div>
 
+          {/* Voice status mini-visual */}
+          {hasPermissions && (
+            <div className={`mb-4 flex items-center gap-3 ${enableVoice ? 'text-green-700' : 'text-gray-600'}`}>
+              <span className="text-xl">🎤</span>
+              <div className="flex-1">
+                <div className="text-sm font-medium">{enableVoice ? 'Voice is on' : 'Voice is off'}</div>
+                <div className="text-xs">{enableVoice ? 'Talk to Pi after you enter.' : 'You can turn it on later.'}</div>
+              </div>
+              <div className="flex gap-1" aria-hidden>
+                <div className={`w-2 h-2 rounded-full ${enableVoice ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+                <div className={`w-2 h-2 rounded-full ${enableVoice ? 'bg-green-400 animate-pulse' : 'bg-gray-300'}`}></div>
+                <div className={`w-2 h-2 rounded-full ${enableVoice ? 'bg-green-300 animate-pulse' : 'bg-gray-300'}`}></div>
+              </div>
+            </div>
+          )}
+
           {/* Voice Option (compact) */}
           {hasPermissions && (
             <label className="flex items-center gap-2 mb-6 select-none cursor-pointer">
@@ -102,7 +118,7 @@ export default function SessionStartDialog({ isOpen, onStart, onSkip }: SessionS
                 onChange={(e) => setEnableVoice(e.target.checked)}
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
-              <span className="text-sm text-gray-700">Add voice (optional)</span>
+              <span className="text-sm text-gray-700">Add voice (default)</span>
             </label>
           )}
 
