@@ -31,16 +31,29 @@ export async function POST(request: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey)
-    // Server owns the model choice; ignore client override for stability/cost control
-    const chosenModel = (process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash')
+    // Prefer 2.5 if available; fallback to 2.0-exp which works with this key class
+    const preferred = (process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash')
+    let chosenModel = preferred
 
     const generationConfig: Record<string, unknown> = {
       temperature: typeof temperature === 'number' ? temperature : Number(process.env.GEMINI_TEMPERATURE ?? 0.7),
       maxOutputTokens: typeof maxTokens === 'number' ? maxTokens : Number(process.env.GEMINI_MAX_TOKENS ?? 96)
     }
 
-    const modelHandle = genAI.getGenerativeModel({ model: chosenModel as string, generationConfig })
-    const result = await modelHandle.generateContent(prompt)
+    let modelHandle = genAI.getGenerativeModel({ model: chosenModel as string, generationConfig })
+    let result
+    try {
+      result = await modelHandle.generateContent(prompt)
+    } catch (e: any) {
+      // Fallback when 2.5-flash fails due to transient backend or per-key policy
+      if (chosenModel !== 'gemini-2.0-flash-exp') {
+        chosenModel = 'gemini-2.0-flash-exp'
+        modelHandle = genAI.getGenerativeModel({ model: chosenModel, generationConfig })
+        result = await modelHandle.generateContent(prompt)
+      } else {
+        throw e
+      }
+    }
     const text = result?.response?.text?.() || ''
     return NextResponse.json({ text })
   } catch (error) {

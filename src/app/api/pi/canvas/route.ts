@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey)
-    const modelName = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash'
-    const model = genAI.getGenerativeModel({ model: modelName })
+    let modelName = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash'
+    let model = genAI.getGenerativeModel({ model: modelName })
 
     const sys = `You are Pi, a warm, encouraging elementary math tutor.
 You will be given an optional reference photo and the student's current canvas snapshot.
@@ -61,7 +61,19 @@ If you cannot analyze, set analysis to an empty object.`
     const mHint = manipulatives.length > 0 ? ` Manipulatives (approx, normalized): ${JSON.stringify(manipulatives.slice(0,3))}. If helpful, place the annotation near the most relevant manipulative (e.g., highlight a specific marker, shaded part, or point).` : ''
     parts.push({ text: `Current topic: ${topic}.${sizeHint}${mHint} Return only the JSON as described. Always return annotation coordinates normalized (0..1) in the same space as the canvas snapshot.` })
 
-    const result = await model.generateContent(parts)
+    let result
+    try {
+      result = await model.generateContent(parts)
+    } catch (e: any) {
+      // Fallback to 2.0 flash exp if 2.5 fails for this key
+      if (modelName !== 'gemini-2.0-flash-exp') {
+        modelName = 'gemini-2.0-flash-exp'
+        model = genAI.getGenerativeModel({ model: modelName })
+        result = await model.generateContent(parts)
+      } else {
+        throw e
+      }
+    }
     const raw = String(result?.response?.text?.() || '')
     let text = ''
     let analysis: Record<string, unknown> | undefined
