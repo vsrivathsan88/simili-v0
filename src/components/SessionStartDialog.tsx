@@ -14,20 +14,17 @@ export default function SessionStartDialog({ isOpen, onStart, onSkip }: SessionS
   const [hasPermissions, setHasPermissions] = useState(false)
 
   useEffect(() => {
-    // Check if browser supports voice
-    const supportsVoice = typeof navigator !== 'undefined' && 
-                         navigator.mediaDevices && 
-                         navigator.mediaDevices.getUserMedia
-    
+    // Check if browser supports voice (boolean), avoid passing function to setState
+    const supportsVoice = typeof navigator !== 'undefined' &&
+      !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function')
     setHasPermissions(supportsVoice)
   }, [])
 
   const handleStart = async () => {
     // Proactively request microphone permission so getUserMedia works later
-    if (enableVoice && typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+    if (enableVoice && typeof navigator !== 'undefined' && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
       try {
-        const getUM = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices)
-        const stream = await getUM({ audio: true })
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
         // Immediately stop tracks; we only wanted the permission grant
         stream.getTracks().forEach(t => t.stop())
       } catch (e) {
