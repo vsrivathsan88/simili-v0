@@ -591,8 +591,7 @@ Remember: Your goal is to help students discover mathematical understanding thro
     if (this.isStreamingAudio) return true
 
     try {
-      const getUM = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices)
-      this.audioStream = await getUM({
+      this.audioStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
