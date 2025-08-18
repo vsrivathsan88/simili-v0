@@ -58,12 +58,11 @@ const ProblemDisplay: React.FC<ProblemDisplayProps> = ({ onImageUpload }) => {
         >
           <div className="upload-content">
             <span className="upload-icon">📷</span>
-            <h3>Upload Problem Image</h3>
-            <p>Drag & drop or click to upload</p>
-            <p className="upload-hint">Take a photo of the problem from a textbook or worksheet</p>
+            <h3>Add Problem</h3>
+            <p>Drop image here</p>
             
-            <SketchyButton onClick={triggerFileSelect} variant="primary" size="medium">
-              Choose Image
+            <SketchyButton onClick={triggerFileSelect} variant="primary" size="small">
+              Browse
             </SketchyButton>
             
             <input
@@ -92,30 +91,6 @@ const ProblemDisplay: React.FC<ProblemDisplayProps> = ({ onImageUpload }) => {
         </div>
       )}
 
-      {/* Sample problems for demo */}
-      <div className="sample-problems">
-        <h4>Or try a sample problem:</h4>
-        <div className="sample-grid">
-          <button className="sample-btn" onClick={() => {
-            setProblemImage('/samples/pizza-fractions.png');
-            onImageUpload('/samples/pizza-fractions.png');
-          }}>
-            🍕 Pizza Fractions
-          </button>
-          <button className="sample-btn" onClick={() => {
-            setProblemImage('/samples/word-problem.png');
-            onImageUpload('/samples/word-problem.png');
-          }}>
-            📝 Word Problem
-          </button>
-          <button className="sample-btn" onClick={() => {
-            setProblemImage('/samples/multiplication.png');
-            onImageUpload('/samples/multiplication.png');
-          }}>
-            ✖️ Multiplication
-          </button>
-        </div>
-      </div>
     </div>
   );
 };

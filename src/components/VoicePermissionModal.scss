@@ -1,0 +1,80 @@
+@import '../config/variables';
+
+.voice-permission-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.voice-permission-modal {
+  background: white;
+  border-radius: 24px;
+  padding: 40px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+
+  .modal-content {
+    text-align: center;
+
+    .modal-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      animation: bounce 2s infinite;
+    }
+
+    h2 {
+      font-size: 28px;
+      margin: 0 0 16px;
+      font-family: $hand-drawn-font;
+      color: $primary-color;
+    }
+
+    p {
+      font-size: 16px;
+      color: $text-primary;
+      margin: 0 0 12px;
+      line-height: 1.5;
+
+      &.privacy-note {
+        font-size: 14px;
+        color: $text-secondary;
+        margin-top: 20px;
+      }
+    }
+
+    .button-group {
+      margin-top: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+
+      .text-button {
+        background: none;
+        border: none;
+        color: $text-secondary;
+        font-size: 14px;
+        cursor: pointer;
+        text-decoration: underline;
+        padding: 8px;
+
+        &:hover {
+          color: $text-primary;
+        }
+      }
+    }
+  }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}

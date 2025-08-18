@@ -5,9 +5,10 @@ import { PI_SYSTEM_INSTRUCTION, piToolDeclarations } from './config/piTutor';
 import { designSystem } from './config/designSystem';
 import { SketchyButton } from './components/ui/SketchyButton';
 import { VoiceInput } from './components/VoiceInput';
-import StudentNotebook from './components/StudentNotebook';
+import SimpleStudentCanvas from './components/SimpleStudentCanvas';
 import ProblemDisplay from './components/ProblemDisplay';
 import ReasoningTrace from './components/ReasoningTrace';
+import VoicePermissionModal from './components/VoicePermissionModal';
 import { ToolCallFeedback } from './components/ToolCallFeedback';
 import { handleToolCall } from './lib/toolImplementations';
 import { useConnectionRetry } from './hooks/useConnectionRetry';
@@ -22,6 +23,7 @@ function SimiliApp() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [canvasImageData, setCanvasImageData] = useState<string>('');
   const [problemImage, setProblemImage] = useState<string>('');
+  const [showVoicePermission, setShowVoicePermission] = useState(false);
 
   useEffect(() => {
     // Configure Pi tutor with Gemini Live model
@@ -109,6 +111,11 @@ function SimiliApp() {
   );
 
   const handleConnect = async () => {
+    setShowVoicePermission(true);
+  };
+
+  const handleVoiceAllow = async () => {
+    setShowVoicePermission(false);
     setIsConnecting(true);
     try {
       console.log('Attempting to connect to Gemini Live...');
@@ -119,6 +126,10 @@ function SimiliApp() {
       alert('Failed to connect after multiple attempts. Please check your API key and internet connection.');
       console.error('Connection error:', error);
     }
+  };
+
+  const handleVoiceDeny = () => {
+    setShowVoicePermission(false);
   };
 
   const handleDisconnect = () => {
@@ -149,15 +160,15 @@ function SimiliApp() {
     <div className="simili-app" style={{ backgroundColor: designSystem.colors.paper }}>
       {connected && <ToolCallFeedback />}
       <header className="simili-header">
-        <h1 className="simili-title">Simili Math Tutor</h1>
-        <p className="simili-subtitle">Let's explore fractions together!</p>
+        <h1 className="simili-title">📚 Math with Pi</h1>
       </header>
 
       <main className="simili-main">
         {!connected ? (
           <div className="simili-welcome">
-            <h2>Welcome to Simili!</h2>
-            <p>I'm Pi, your friendly math tutor. Ready to learn about fractions?</p>
+            <div className="welcome-emoji">🎓</div>
+            <h2>Ready to learn?</h2>
+            <p>Hi! I'm Pi, your math buddy 🤖</p>
             
             <SketchyButton 
               onClick={handleConnect}
@@ -169,43 +180,45 @@ function SimiliApp() {
                 ? isRetrying 
                   ? `Retrying... (${retryCount}/3)`
                   : 'Connecting...' 
-                : 'Start Learning!'}
+                : 'Start! 🚀'}
             </SketchyButton>
           </div>
         ) : (
           <div className="simili-workspace">
-            <div className="workspace-grid">
-              {/* Left Column: Problem & Reasoning */}
-              <div className="left-column">
+            <div className="workspace-simple">
+              {/* Problem Image - Fixed 30% width */}
+              <div className="problem-section">
                 <ProblemDisplay onImageUpload={handleProblemImageUpload} />
+                <div className="voice-status">
+                  <VoiceInput />
+                  <span className="listening-indicator">🎤 Pi is listening</span>
+                </div>
+              </div>
+
+              {/* Student Canvas - Takes remaining space */}
+              <div className="canvas-section">
+                <SimpleStudentCanvas onCanvasChange={handleCanvasChange} />
+              </div>
+
+              {/* Floating reasoning trace - minimized by default */}
+              <div className="reasoning-mini">
                 <ReasoningTrace />
               </div>
-
-              {/* Center: Student Notebook */}
-              <div className="center-column">
-                <StudentNotebook onCanvasChange={handleCanvasChange} />
-              </div>
-
-              {/* Right Column: Voice & Controls */}
-              <div className="right-column">
-                <div className="voice-section">
-                  <VoiceInput />
-                  <div className="tutor-status">
-                    <span className="status-indicator active"></span>
-                    <span className="status-text">Pi is listening...</span>
-                  </div>
-                </div>
-                
-                <div className="session-controls">
-                  <SketchyButton onClick={handleDisconnect} variant="secondary" size="small">
-                    End Session
-                  </SketchyButton>
-                </div>
-              </div>
             </div>
+
+            {/* Floating end button */}
+            <button className="end-session-btn" onClick={handleDisconnect}>
+              ✖️
+            </button>
           </div>
         )}
       </main>
+
+      <VoicePermissionModal
+        isOpen={showVoicePermission}
+        onAllow={handleVoiceAllow}
+        onDeny={handleVoiceDeny}
+      />
     </div>
   );
 }
