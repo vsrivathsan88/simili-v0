@@ -94,59 +94,6 @@
     min-width: 0; // Allow proper flex shrinking
   }
 
-  .reasoning-mini {
-    position: absolute;
-    bottom: var(--spacing-md);
-    left: var(--spacing-md);
-    width: 300px;
-    max-height: 200px;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: var(--radius-lg);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    transition: all 0.3s ease;
-    
-    &:hover {
-      max-height: 400px;
-    }
-    
-    .reasoning-trace {
-      padding: var(--spacing-sm);
-      max-height: 100%;
-      overflow-y: auto;
-      
-      .trace-title {
-        font-size: 14px;
-        margin-bottom: var(--spacing-sm);
-      }
-      
-      .trace-legend {
-        display: none; // Hide legend in mini view
-      }
-      
-      .trace-timeline {
-        .trace-step {
-          padding: var(--spacing-xs);
-          margin-left: 20px;
-          
-          .step-header {
-            .step-icon {
-              left: -20px;
-              width: 16px;
-              height: 16px;
-              font-size: 10px;
-            }
-          }
-          
-          .step-content {
-            .step-transcript {
-              font-size: 12px;
-            }
-          }
-        }
-      }
-    }
-  }
 
   .end-session-btn {
     position: absolute;

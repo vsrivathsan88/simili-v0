@@ -5,10 +5,11 @@ import { PI_SYSTEM_INSTRUCTION, piToolDeclarations } from './config/piTutor';
 import { designSystem } from './config/designSystem';
 import { SketchyButton } from './components/ui/SketchyButton';
 import { VoiceInput } from './components/VoiceInput';
-import SimpleStudentCanvas from './components/SimpleStudentCanvas';
+import UnifiedCanvas from './components/UnifiedCanvas';
 import ProblemDisplay from './components/ProblemDisplay';
-import ReasoningTrace from './components/ReasoningTrace';
+import TeacherPanel from './components/TeacherPanel';
 import VoicePermissionModal from './components/VoicePermissionModal';
+import LessonHomepage from './components/LessonHomepage';
 import { ToolCallFeedback } from './components/ToolCallFeedback';
 import { handleToolCall } from './lib/toolImplementations';
 import { useConnectionRetry } from './hooks/useConnectionRetry';
@@ -24,6 +25,8 @@ function SimiliApp() {
   const [canvasImageData, setCanvasImageData] = useState<string>('');
   const [problemImage, setProblemImage] = useState<string>('');
   const [showVoicePermission, setShowVoicePermission] = useState(false);
+  const [showTeacherPanel, setShowTeacherPanel] = useState(false);
+  const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
 
   useEffect(() => {
     // Configure Pi tutor with Gemini Live model
@@ -152,8 +155,21 @@ function SimiliApp() {
 
   const handleProblemImageUpload = (imageData: string) => {
     setProblemImage(imageData);
-    // TODO: Send to Gemini vision API
-    console.log('Problem image uploaded');
+    sendToVisionAPI(imageData, canvasImageData);
+  };
+
+  const sendToVisionAPI = (problemImg: string, canvasImg: string) => {
+    // TODO: Implement actual vision API call
+    console.log('Sending to vision API:', { problemImg, canvasImg });
+    // This would send both images to Gemini for analysis
+  };
+
+  const handleLessonSelect = (lessonId: string) => {
+    setSelectedLesson(lessonId);
+    // Auto-start connection for intro lesson
+    if (lessonId === 'intro-fractions') {
+      handleConnect();
+    }
   };
 
   return (
@@ -164,7 +180,9 @@ function SimiliApp() {
       </header>
 
       <main className="simili-main">
-        {!connected ? (
+        {!selectedLesson ? (
+          <LessonHomepage onLessonSelect={handleLessonSelect} />
+        ) : !connected ? (
           <div className="simili-welcome">
             <div className="welcome-emoji">🎓</div>
             <h2>Ready to learn?</h2>
@@ -197,12 +215,10 @@ function SimiliApp() {
 
               {/* Student Canvas - Takes remaining space */}
               <div className="canvas-section">
-                <SimpleStudentCanvas onCanvasChange={handleCanvasChange} />
-              </div>
-
-              {/* Floating reasoning trace - minimized by default */}
-              <div className="reasoning-mini">
-                <ReasoningTrace />
+                <UnifiedCanvas 
+                  onCanvasChange={handleCanvasChange}
+                  problemImage={problemImage}
+                />
               </div>
             </div>
 
@@ -210,6 +226,12 @@ function SimiliApp() {
             <button className="end-session-btn" onClick={handleDisconnect}>
               ✖️
             </button>
+
+            {/* Teacher panel */}
+            <TeacherPanel 
+              isOpen={showTeacherPanel}
+              onToggle={() => setShowTeacherPanel(!showTeacherPanel)}
+            />
           </div>
         )}
       </main>
