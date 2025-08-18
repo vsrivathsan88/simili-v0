@@ -130,6 +130,10 @@ export class SessionRecorder {
   clearAllSessions() {
     localStorage.removeItem('simili-sessions');
   }
+
+  getCurrentSession(): Session | null {
+    return this.currentSession;
+  }
 }
 
 export const sessionRecorder = new SessionRecorder();

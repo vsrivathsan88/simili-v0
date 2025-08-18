@@ -18,7 +18,7 @@ interface OptimizedCanvasProps {
   height: number;
   onCanvasChange?: (imageData: string) => void;
   background?: 'blank' | 'ruled' | 'graph' | 'dots';
-  currentTool: 'pencil' | 'pen' | 'eraser';
+  currentTool: string; // Accept any tool, but only handle pencil/pen/eraser
   currentColor: string;
   strokeWidth: number;
 }
@@ -190,7 +190,10 @@ const OptimizedCanvas: React.FC<OptimizedCanvasProps> = ({
     const ctx = contextRef.current;
     if (!ctx) return;
 
-    if (currentTool === 'eraser') {
+    // Only handle supported tools
+    const tool = ['pencil', 'pen', 'eraser'].includes(currentTool) ? currentTool : 'pencil';
+
+    if (tool === 'eraser') {
       ctx.globalCompositeOperation = 'destination-out';
     } else {
       ctx.globalCompositeOperation = 'source-over';
@@ -246,11 +249,13 @@ const OptimizedCanvas: React.FC<OptimizedCanvasProps> = ({
     setIsDrawing(false);
     
     if (currentStrokeRef.current.length > 0) {
+      // Only save strokes for supported tools
+      const tool = ['pencil', 'pen', 'eraser'].includes(currentTool) ? currentTool : 'pencil';
       const newStroke: Stroke = {
         points: [...currentStrokeRef.current],
         color: currentColor,
         width: strokeWidth,
-        tool: currentTool
+        tool: tool as 'pencil' | 'pen' | 'eraser'
       };
       setStrokes(prev => [...prev, newStroke]);
     }

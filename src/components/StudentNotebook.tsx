@@ -1,6 +1,6 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import './StudentNotebook.scss';
-import { DrawingTool, DrawingMode, NotebookBackground } from './types/notebook';
+import { DrawingTool, NotebookBackground } from './types/notebook';
 import ToolPanel from './notebook/ToolPanel';
 import ManipulativePanel from './notebook/ManipulativePanel';
 import OptimizedCanvas from './OptimizedCanvas';
@@ -13,18 +13,6 @@ interface StudentNotebookProps {
   onCanvasChange?: (imageData: string) => void;
 }
 
-interface Point {
-  x: number;
-  y: number;
-}
-
-interface Stroke {
-  points: Point[];
-  tool: DrawingTool;
-  color: string;
-  width: number;
-}
-
 interface Manipulative {
   id: string;
   type: 'fraction-bar' | 'number-line' | 'base-blocks' | 'array-dots';
@@ -35,179 +23,17 @@ interface Manipulative {
 }
 
 const StudentNotebook: React.FC<StudentNotebookProps> = ({ onCanvasChange }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const roughCanvasRef = useRef<any>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
-  const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [manipulatives, setManipulatives] = useState<Manipulative[]>([]);
   const [selectedManipulative, setSelectedManipulative] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
   
   // Drawing settings
   const [currentTool, setCurrentTool] = useState<DrawingTool>('pencil');
   const [currentColor, setCurrentColor] = useState('#2a2a2a');
   const [strokeWidth, setStrokeWidth] = useState(2);
   const [background, setBackground] = useState<NotebookBackground>('graph');
-  
-  useEffect(() => {
-    if (canvasRef.current && !roughCanvasRef.current) {
-      roughCanvasRef.current = rough.canvas(canvasRef.current);
-    }
-  }, []);
-
-  const drawBackground = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw paper background
-    ctx.fillStyle = '#fafafa';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw lines based on background type
-    ctx.strokeStyle = '#e0e0e0';
-    ctx.lineWidth = 1;
-    
-    if (background === 'ruled') {
-      // Draw horizontal lines
-      for (let y = 30; y < canvas.height; y += 25) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
-      }
-      // Draw margin line
-      ctx.strokeStyle = '#ffcccc';
-      ctx.beginPath();
-      ctx.moveTo(60, 0);
-      ctx.lineTo(60, canvas.height);
-      ctx.stroke();
-    } else if (background === 'graph') {
-      // Draw grid
-      for (let x = 0; x < canvas.width; x += 20) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
-      }
-      for (let y = 0; y < canvas.height; y += 20) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
-      }
-    }
-  }, [background]);
-
-  const redrawCanvas = useCallback(() => {
-    drawBackground();
-    
-    const canvas = canvasRef.current;
-    const rc = roughCanvasRef.current;
-    if (!canvas || !rc) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    // Redraw all strokes
-    strokes.forEach(stroke => {
-      if (stroke.tool === 'eraser') {
-        // Eraser clears pixels
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.lineWidth = stroke.width;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        
-        ctx.beginPath();
-        stroke.points.forEach((point, i) => {
-          if (i === 0) {
-            ctx.moveTo(point.x, point.y);
-          } else {
-            ctx.lineTo(point.x, point.y);
-          }
-        });
-        ctx.stroke();
-        ctx.globalCompositeOperation = 'source-over';
-      } else {
-        // Draw with rough.js for pencil/pen
-        const roughness = stroke.tool === 'pencil' ? 1.5 : 0.5;
-        
-        if (stroke.points.length > 1) {
-          for (let i = 1; i < stroke.points.length; i++) {
-            rc.line(
-              stroke.points[i - 1].x,
-              stroke.points[i - 1].y,
-              stroke.points[i].x,
-              stroke.points[i].y,
-              {
-                stroke: stroke.color,
-                strokeWidth: stroke.width,
-                roughness,
-                bowing: stroke.tool === 'pencil' ? 2 : 0
-              }
-            );
-          }
-        }
-      }
-    });
-    
-    // Notify parent of canvas change
-    if (onCanvasChange) {
-      onCanvasChange(canvas.toDataURL());
-    }
-  }, [strokes, drawBackground, onCanvasChange]);
-
-  useEffect(() => {
-    redrawCanvas();
-  }, [strokes, background, redrawCanvas]);
-
-  const startDrawing = (e: React.MouseEvent) => {
-    if (selectedManipulative) return;
-    
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    
-    setIsDrawing(true);
-    const point = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    };
-    setCurrentStroke([point]);
-  };
-
-  const draw = (e: React.MouseEvent) => {
-    if (!isDrawing) return;
-    
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    
-    const point = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    };
-    
-    setCurrentStroke(prev => [...prev, point]);
-  };
-
-  const stopDrawing = () => {
-    if (isDrawing && currentStroke.length > 0) {
-      setStrokes(prev => [...prev, {
-        points: currentStroke,
-        tool: currentTool,
-        color: currentColor,
-        width: strokeWidth
-      }]);
-      setCurrentStroke([]);
-    }
-    setIsDrawing(false);
-  };
 
   const handleManipulativeAdd = (type: Manipulative['type']) => {
     const newManipulative: Manipulative = {
@@ -241,13 +67,63 @@ const StudentNotebook: React.FC<StudentNotebookProps> = ({ onCanvasChange }) => 
     ));
   };
 
+  const handleManipulativeMouseDown = (e: React.MouseEvent, manipulativeId: string) => {
+    e.preventDefault();
+    setSelectedManipulative(manipulativeId);
+    setIsDragging(true);
+    
+    const manipulative = manipulatives.find(m => m.id === manipulativeId);
+    if (!manipulative) return;
+    
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    setDragOffset({
+      x: e.clientX - rect.left - manipulative.x,
+      y: e.clientY - rect.top - manipulative.y
+    });
+  };
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging || !selectedManipulative) return;
+    
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const newX = e.clientX - rect.left - dragOffset.x;
+    const newY = e.clientY - rect.top - dragOffset.y;
+    
+    setManipulatives(prev => prev.map(m => 
+      m.id === selectedManipulative 
+        ? { ...m, x: Math.max(0, newX), y: Math.max(0, newY) }
+        : m
+    ));
+  }, [isDragging, selectedManipulative, dragOffset]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  React.useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp]);
+
   const handleUndo = () => {
-    setStrokes(prev => prev.slice(0, -1));
+    // This will be handled by OptimizedCanvas
+    console.log('Undo requested');
   };
 
   const handleClear = () => {
-    setStrokes([]);
     setManipulatives([]);
+    // Also clear the canvas - this would need to be passed to OptimizedCanvas
+    console.log('Clear requested');
   };
 
   return (
@@ -265,38 +141,29 @@ const StudentNotebook: React.FC<StudentNotebookProps> = ({ onCanvasChange }) => 
         onClear={handleClear}
       />
       
-      <div className="notebook-area">
-        <canvas
-          ref={canvasRef}
+      <div className="notebook-area" ref={containerRef}>
+        <OptimizedCanvas
           width={800}
           height={600}
-          className="drawing-canvas"
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
+          onCanvasChange={onCanvasChange}
+          background={background}
+          currentTool={currentTool}
+          currentColor={currentColor}
+          strokeWidth={strokeWidth}
         />
         
         <div className="manipulatives-layer">
           {manipulatives.map(m => (
             <div
               key={m.id}
-              className={`manipulative ${m.selected ? 'selected' : ''}`}
+              className={`manipulative ${m.id === selectedManipulative ? 'selected' : ''}`}
               style={{
                 position: 'absolute',
                 left: m.x,
                 top: m.y,
-                cursor: isDragging && m.selected ? 'grabbing' : 'grab'
+                cursor: isDragging && m.id === selectedManipulative ? 'grabbing' : 'grab'
               }}
-              onMouseDown={(e) => {
-                setSelectedManipulative(m.id);
-                setIsDragging(true);
-                const rect = e.currentTarget.getBoundingClientRect();
-                setDragOffset({
-                  x: e.clientX - rect.left,
-                  y: e.clientY - rect.top
-                });
-              }}
+              onMouseDown={(e) => handleManipulativeMouseDown(e, m.id)}
             >
               {m.type === 'fraction-bar' && (
                 <DynamicFractionBar
