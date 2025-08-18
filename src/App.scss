@@ -1,0 +1,129 @@
+@import './config/designSystem.scss';
+
+.simili-app {
+  min-height: 100vh;
+  font-family: var(--font-body);
+  color: var(--color-ink);
+}
+
+.simili-header {
+  text-align: center;
+  padding: var(--spacing-xl) var(--spacing-md);
+  border-bottom: 3px solid var(--color-ink);
+  border-bottom-style: dashed;
+}
+
+.simili-title {
+  font-size: 48px;
+  margin: 0;
+  font-family: var(--font-handwritten);
+  color: var(--color-primary);
+  transform: rotate(-1deg);
+}
+
+.simili-subtitle {
+  font-size: 18px;
+  margin: var(--spacing-sm) 0 0;
+  opacity: 0.8;
+}
+
+.simili-main {
+  padding: var(--spacing-xl);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.simili-welcome {
+  text-align: center;
+  padding: var(--spacing-xl) 0;
+  
+  h2 {
+    font-size: 32px;
+    font-family: var(--font-handwritten);
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-md);
+  }
+  
+  p {
+    font-size: 18px;
+    margin-bottom: var(--spacing-xl);
+  }
+}
+
+.simili-workspace {
+  display: grid;
+  gap: var(--spacing-xl);
+}
+
+.simili-problem {
+  background: white;
+  padding: var(--spacing-lg);
+  border: 2px dashed var(--color-primary);
+  border-radius: var(--radius-lg);
+  
+  h3 {
+    font-family: var(--font-handwritten);
+    color: var(--color-primary);
+    margin: 0 0 var(--spacing-md);
+  }
+  
+  p {
+    font-size: 18px;
+    line-height: 1.6;
+    margin: 0;
+  }
+}
+
+.simili-canvas-container {
+  background: white;
+  border: 2px solid var(--color-ink);
+  border-radius: var(--radius-lg);
+  min-height: 400px;
+  position: relative;
+}
+
+.simili-canvas-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: var(--color-ink);
+  opacity: 0.5;
+  font-family: var(--font-handwritten);
+  font-size: 24px;
+}
+
+.simili-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.voice-input {
+  text-align: center;
+}
+
+.simili-error {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  text-align: center;
+  
+  h1 {
+    color: var(--color-error);
+    margin-bottom: var(--spacing-md);
+  }
+  
+  code {
+    background: rgba(0, 0, 0, 0.05);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    font-family: monospace;
+    display: inline-block;
+    margin-top: var(--spacing-md);
+  }
+}

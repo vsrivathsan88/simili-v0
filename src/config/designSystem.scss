@@ -1,0 +1,32 @@
+// Design system variables for SCSS
+:root {
+  // Colors
+  --color-paper: #FFFEF7;
+  --color-ink: #2D3748;
+  --color-primary: #5B21B6;
+  --color-success: #059669;
+  --color-warning: #D97706;
+  --color-error: #DC2626;
+  
+  // Pastel fills
+  --fill-correct: #D1FAE5;
+  --fill-partial: #FEF3C7;
+  --fill-incorrect: #FED7AA;
+  --fill-exploring: #E9D5FF;
+  
+  // Fonts
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-handwritten: "Comic Sans MS", "Marker Felt", cursive;
+  
+  // Spacing
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  // Border radius (intentionally irregular for hand-drawn feel)
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}

@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Simili Math Tutor
 
-## Getting Started
+A reasoning visualization platform for elementary math education, powered by Gemini Live API.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Pi Tutor**: Friendly AI math tutor using Gemini Live's conversational AI
+- **Hand-drawn UI**: Warm, approachable interface using rough.js
+- **Reasoning Visualization**: Visual representation of student thinking journey
+- **Interactive Canvas**: Drawing tools and math manipulatives (coming soon)
+- **Session Recording**: Capture and replay problem-solving sessions
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Get a Gemini API Key**
+   - Visit [Google AI Studio](https://aistudio.google.com/apikey)
+   - Create a free API key
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Configure Environment**
+   - Copy `.env.example` to `.env`
+   - Add your API key: `REACT_APP_GEMINI_API_KEY=your_api_key_here`
 
-## Learn More
+3. **Install Dependencies**
+   ```bash
+   npm install
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+4. **Start Development Server**
+   ```bash
+   npm start
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Architecture
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Built on top of Google's Gemini Live API Web Console with:
+- React + TypeScript
+- rough.js for hand-drawn UI components
+- Gemini Live 2.0 for conversational AI
+- Custom tool functions for math tutoring
 
-## Deploy on Vercel
+## Development Status
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Completed ✓
+- Gemini Live integration
+- Pi tutor personality configuration
+- Hand-drawn UI components (SketchyButton, ReasoningBubble)
+- Math tool function implementations
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### In Progress
+- tldraw canvas integration
+- Fraction manipulatives (Pizza, FractionBar)
+- Reasoning map visualization
+- Canvas → Gemini vision sync
+
+## Tool Functions
+
+Pi can call these functions during tutoring:
+- `mark_reasoning_step`: Record student's reasoning
+- `flag_misconception`: Identify learning opportunities
+- `suggest_hint`: Provide scaffolded support
+- `celebrate_exploration`: Acknowledge productive struggle
+- `annotate_canvas`: Draw visual hints

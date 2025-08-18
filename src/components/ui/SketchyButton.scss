@@ -1,0 +1,62 @@
+@import '../../config/designSystem.scss';
+
+.sketchy-button {
+  position: relative;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-weight: 500;
+  transition: transform 0.2s ease;
+  
+  &:hover:not(:disabled) {
+    transform: scale(1.02);
+  }
+  
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  &--small {
+    padding: 8px 16px;
+    min-width: 80px;
+  }
+  
+  &--medium {
+    padding: 12px 24px;
+    min-width: 120px;
+  }
+  
+  &--large {
+    padding: 16px 32px;
+    min-width: 160px;
+  }
+  
+  &__svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+  }
+  
+  &__content {
+    position: relative;
+    z-index: 1;
+    color: var(--color-ink);
+  }
+  
+  &--primary &__content {
+    color: var(--color-primary);
+  }
+  
+  &--primary:hover &__content {
+    color: var(--color-paper);
+  }
+}
