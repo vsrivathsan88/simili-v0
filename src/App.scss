@@ -1,4 +1,5 @@
 @import './config/designSystem.scss';
+@import './styles/animations.scss';
 
 .simili-app {
   min-height: 100vh;
@@ -16,6 +17,7 @@
   font-size: 24px;
   margin: 0;
   font-family: var(--font-handwritten);
+  font-weight: 700;
   color: var(--color-primary);
 }
 
@@ -38,12 +40,14 @@
   h2 {
     font-size: 32px;
     font-family: var(--font-handwritten);
+    font-weight: 700;
     color: var(--color-primary);
     margin-bottom: var(--spacing-sm);
   }
   
   p {
     font-size: 18px;
+    font-weight: 400;
     margin-bottom: var(--spacing-xl);
     color: var(--color-ink);
   }
@@ -55,7 +59,7 @@
 }
 
 .simili-workspace {
-  height: calc(100vh - 60px); // Smaller header
+  height: calc(100vh - 60px);
   position: relative;
   
   .workspace-simple {
@@ -66,7 +70,7 @@
   }
 
   .problem-section {
-    width: 30%; // Fixed 30% as requested
+    width: 30%;
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
@@ -75,15 +79,26 @@
       background: white;
       border-radius: var(--radius-lg);
       padding: var(--spacing-md);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
       text-align: center;
+      transition: all 0.3s ease;
+      @extend .hover-scale;
+      @extend .shadow-grow;
       
       .listening-indicator {
         display: block;
         margin-top: var(--spacing-sm);
         font-size: 14px;
         color: var(--color-success);
-        animation: pulse 2s infinite;
+        @extend .breathe-soft;
+      }
+      
+      .connecting-indicator {
+        display: block;
+        margin-top: var(--spacing-sm);
+        font-size: 14px;
+        color: var(--color-warning, #f59e0b);
+        @extend .breathe-soft;
       }
     }
   }
@@ -91,16 +106,21 @@
   .canvas-section {
     flex: 1;
     position: relative;
-    min-width: 0; // Allow proper flex shrinking
+    min-width: 0;
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    @extend .shadow-grow;
   }
-
 
   .end-session-btn {
     position: absolute;
     top: var(--spacing-md);
     right: var(--spacing-md);
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: white;
     border: 2px solid #e0e0e0;
@@ -109,13 +129,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    @extend .hover-scale;
     
     &:hover {
       background: #fee2e2;
       border-color: #ff6b6b;
-      transform: scale(1.1);
+      transform: scale(1.15);
+      box-shadow: 0 6px 20px rgba(255, 107, 107, 0.3);
     }
   }
 }

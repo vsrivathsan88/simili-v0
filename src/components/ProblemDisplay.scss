@@ -1,23 +1,28 @@
 @import '../config/variables';
+@import '../styles/animations';
 
 .problem-display {
   background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  @extend .shadow-grow;
 
   .upload-area {
     border: 3px dashed $primary-color;
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 40px 20px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
     background: lighten($primary-color, 48%);
+    @extend .hover-scale;
 
     &:hover {
       background: lighten($primary-color, 45%);
-      transform: translateY(-2px);
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     }
 
     .upload-content {
@@ -25,6 +30,7 @@
         font-size: 48px;
         display: block;
         margin-bottom: 16px;
+        @extend .float-gentle;
       }
 
       h3 {
@@ -52,36 +58,61 @@
     position: relative;
     display: inline-block;
     width: 100%;
+    @extend .spring-in;
 
     .problem-image {
       width: 100%;
       max-height: 300px;
       object-fit: contain;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      @extend .hover-scale;
     }
 
-    .change-image-btn {
+    .problem-controls {
       position: absolute;
       top: 8px;
       right: 8px;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: white;
-      border: 2px solid $primary-color;
-      cursor: pointer;
-      font-size: 16px;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      gap: 8px;
 
-      &:hover {
-        transform: scale(1.1);
-        background: $primary-color;
+      button {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: white;
+        border: 2px solid $primary-color;
+        cursor: pointer;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        @extend .hover-scale;
+
+        &:hover {
+          transform: scale(1.15);
+          background: lighten($primary-color, 45%);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
       }
+    }
+
+    .problem-hint {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.95);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: $text-secondary;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(8px);
+      @extend .breathe-soft;
     }
   }
 

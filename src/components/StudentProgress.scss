@@ -1,0 +1,262 @@
+@import '../config/variables';
+
+.student-progress {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px;
+
+  &.loading {
+    text-align: center;
+    padding: 60px;
+    color: $text-secondary;
+  }
+
+  h2 {
+    font-size: 28px;
+    font-family: $hand-drawn-font;
+    color: $primary-color;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+
+  .progress-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      .stat-value {
+        display: block;
+        font-size: 36px;
+        font-weight: 700;
+        color: $primary-color;
+        margin-bottom: 8px;
+      }
+
+      .stat-label {
+        font-size: 14px;
+        color: $text-secondary;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .mastery-section {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    h3 {
+      font-size: 20px;
+      font-weight: 600;
+      color: $text-primary;
+      margin-bottom: 20px;
+    }
+
+    .mastery-units {
+      display: grid;
+      gap: 20px;
+
+      .unit-progress {
+        .unit-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+
+          h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: $text-primary;
+            margin: 0;
+          }
+
+          .mastery-percent {
+            font-size: 18px;
+            font-weight: 700;
+            color: $primary-color;
+          }
+        }
+
+        .progress-bar {
+          height: 12px;
+          background: #f0f0f0;
+          border-radius: 6px;
+          overflow: hidden;
+          margin-bottom: 12px;
+
+          .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, $primary-color, lighten($primary-color, 10%));
+            border-radius: 6px;
+            transition: width 0.5s ease;
+          }
+        }
+
+        .unit-concepts {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+
+          .concept-tag {
+            font-size: 12px;
+            padding: 4px 8px;
+            background: lighten($primary-color, 45%);
+            color: $primary-color;
+            border-radius: 12px;
+            font-weight: 500;
+          }
+        }
+      }
+    }
+  }
+
+  .strengths-weaknesses {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+
+    > div {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+      h3 {
+        font-size: 20px;
+        font-weight: 600;
+        color: $text-primary;
+        margin-bottom: 16px;
+      }
+
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+
+        li {
+          padding: 8px 0 8px 24px;
+          position: relative;
+          font-size: 15px;
+          color: $text-secondary;
+
+          &::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: $accent-green;
+            font-weight: bold;
+          }
+        }
+      }
+
+      p {
+        color: $text-secondary;
+        font-style: italic;
+        margin: 0;
+      }
+    }
+
+    .areas-to-practice {
+      ul li::before {
+        content: '→';
+        color: $accent-yellow;
+      }
+    }
+  }
+
+  .recent-activity {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    h3 {
+      font-size: 20px;
+      font-weight: 600;
+      color: $text-primary;
+      margin-bottom: 20px;
+    }
+
+    .activity-list {
+      display: grid;
+      gap: 12px;
+
+      .activity-item {
+        display: grid;
+        grid-template-columns: 100px 1fr auto;
+        align-items: center;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        gap: 12px;
+
+        .activity-date {
+          font-size: 14px;
+          color: $text-secondary;
+          font-weight: 500;
+        }
+
+        .activity-problems {
+          font-size: 15px;
+          color: $text-primary;
+        }
+
+        .activity-concepts {
+          display: flex;
+          gap: 6px;
+
+          .mini-tag {
+            font-size: 11px;
+            padding: 2px 6px;
+            background: white;
+            color: $primary-color;
+            border-radius: 8px;
+            border: 1px solid lighten($primary-color, 40%);
+          }
+        }
+      }
+    }
+  }
+
+  .motivational-message {
+    background: linear-gradient(135deg, lighten($primary-color, 45%), lighten($accent-blue, 45%));
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+
+    p {
+      font-size: 18px;
+      font-weight: 600;
+      color: $primary-color;
+      margin: 0;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .strengths-weaknesses {
+      grid-template-columns: 1fr;
+    }
+
+    .progress-overview {
+      grid-template-columns: 1fr;
+    }
+  }
+}

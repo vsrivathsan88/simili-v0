@@ -45,7 +45,7 @@ export const designSystem = {
   
   // Typography
   fonts: {
-    body: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-    handwritten: '"Comic Sans MS", "Marker Felt", cursive'
+    body: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    handwritten: '"Nunito", "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
   }
 };

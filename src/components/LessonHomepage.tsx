@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import './LessonHomepage.scss';
 
 interface Lesson {
@@ -84,51 +83,72 @@ const LessonHomepage: React.FC<LessonHomepageProps> = ({ onLessonSelect }) => {
   return (
     <div className="lesson-homepage">
       <header className="homepage-header">
-        <h1>🎓 Grade 3 Fractions</h1>
-        <p>Based on Illustrative Mathematics</p>
+        <h1>🎵 Math Playlist</h1>
+        <p>With your tutor Pi</p>
       </header>
 
-      <div className="lessons-grid">
-        {lessons.map((lesson, index) => (
-          <motion.div
-            key={lesson.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <button
-              className={`lesson-card ${lesson.active ? 'active' : 'inactive'}`}
-              onClick={() => lesson.active && onLessonSelect(lesson.id)}
-              disabled={!lesson.active}
-            >
-              <div className="card-image">
-                <span className="lesson-emoji">{lesson.image}</span>
-                {!lesson.active && <div className="coming-soon">Coming Soon</div>}
-              </div>
-              
-              <div className="card-content">
-                <div className="card-meta">
-                  <span className="unit">{lesson.unit}</span>
-                  <span className="grade">{lesson.grade}</span>
-                </div>
-                <h3>{lesson.title}</h3>
-                <p className="subtitle">{lesson.subtitle}</p>
-                <p className="description">{lesson.description}</p>
-              </div>
-
-              {lesson.active && (
-                <div className="start-button">
-                  <span>Start Lesson</span>
-                  <span className="arrow">→</span>
-                </div>
-              )}
+      <div className="playlist-container">
+        <div className="playlist-header">
+          <div className="playlist-info">
+            <h2>Grade 3 Fractions</h2>
+            <p>6 lessons • Based on Illustrative Math</p>
+          </div>
+          <div className="playlist-controls">
+            <button className="shuffle-btn">🔀</button>
+            <button className="play-all-btn" onClick={() => onLessonSelect('intro-fractions')}>
+              ▶️ Start Learning
             </button>
-          </motion.div>
-        ))}
+          </div>
+        </div>
+
+        <div className="lessons-playlist">
+          {lessons.map((lesson, index) => (
+            <div
+              key={lesson.id}
+              className={`playlist-track ${lesson.active ? 'active' : 'inactive'} spring-in`}
+              style={{ animationDelay: `${index * 0.05}s` }}
+            >
+              <button
+                className="track-button"
+                onClick={() => lesson.active && onLessonSelect(lesson.id)}
+                disabled={!lesson.active}
+              >
+                <div className="track-number">
+                  {lesson.active ? (
+                    <span className="play-icon">▶️</span>
+                  ) : (
+                    <span className="track-index">{index + 1}</span>
+                  )}
+                </div>
+                
+                <div className="track-visual">
+                  <span className="track-emoji">{lesson.image}</span>
+                </div>
+                
+                <div className="track-info">
+                  <h3 className="track-title">{lesson.title}</h3>
+                  <p className="track-subtitle">{lesson.subtitle}</p>
+                  <div className="track-meta">
+                    <span className="unit-badge">{lesson.unit}</span>
+                    <span className="difficulty">Easy</span>
+                  </div>
+                </div>
+                
+                <div className="track-status">
+                  {lesson.active ? (
+                    <span className="duration">~10 min</span>
+                  ) : (
+                    <span className="coming-soon-badge">Soon</span>
+                  )}
+                </div>
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
 
       <footer className="homepage-footer">
-        <p>Powered by Pi 🤖 • Your friendly math tutor</p>
+        <p>🤖 Your AI math tutor is ready to help!</p>
       </footer>
     </div>
   );

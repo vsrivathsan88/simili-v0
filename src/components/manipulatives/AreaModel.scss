@@ -1,0 +1,121 @@
+@import '../../config/variables';
+
+.area-model {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: inline-block;
+
+  .area-controls {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+
+    .dimension-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      label {
+        font-size: 14px;
+        color: $text-secondary;
+        font-weight: 600;
+      }
+
+      button {
+        width: 24px;
+        height: 24px;
+        border: 2px solid $primary-color;
+        border-radius: 50%;
+        background: white;
+        color: $primary-color;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: $primary-color;
+          color: white;
+          transform: scale(1.1);
+        }
+      }
+
+      span {
+        font-weight: 600;
+        color: $text-primary;
+        min-width: 20px;
+        text-align: center;
+      }
+    }
+  }
+
+  .area-grid {
+    display: grid;
+    gap: 2px;
+    background: #e0e0e0;
+    padding: 2px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+
+    .area-cell {
+      width: 30px;
+      height: 30px;
+      background: white;
+      border: 1px solid #e0e0e0;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+
+      &:hover {
+        background: lighten($primary-color, 45%);
+        transform: scale(1.05);
+      }
+
+      &.selected {
+        background: $primary-color;
+        
+        &::after {
+          content: '✓';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          color: white;
+          font-size: 16px;
+          font-weight: bold;
+        }
+      }
+    }
+  }
+
+  .area-fraction {
+    text-align: center;
+
+    .fraction-display {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 20px;
+      font-weight: 600;
+      color: $text-primary;
+
+      .numerator {
+        color: $primary-color;
+      }
+
+      .fraction-bar {
+        margin: 2px 0;
+        min-width: 40px;
+      }
+
+      .denominator {
+        color: $text-primary;
+      }
+    }
+  }
+}

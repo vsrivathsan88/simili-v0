@@ -3,7 +3,6 @@ import { LiveAPIProvider } from './contexts/LiveAPIContext';
 import { useLiveAPIContext } from './contexts/LiveAPIContext';
 import { PI_SYSTEM_INSTRUCTION, piToolDeclarations } from './config/piTutor';
 import { designSystem } from './config/designSystem';
-import { SketchyButton } from './components/ui/SketchyButton';
 import { VoiceInput } from './components/VoiceInput';
 import UnifiedCanvas from './components/UnifiedCanvas';
 import ProblemDisplay from './components/ProblemDisplay';
@@ -13,6 +12,7 @@ import LessonHomepage from './components/LessonHomepage';
 import { ToolCallFeedback } from './components/ToolCallFeedback';
 import { handleToolCall } from './lib/toolImplementations';
 import { useConnectionRetry } from './hooks/useConnectionRetry';
+import { useDebounce } from './hooks/useDebounce';
 import { sessionRecorder } from './lib/sessionRecorder';
 import { Modality } from '@google/genai';
 import './App.scss';
@@ -21,12 +21,13 @@ import './App.scss';
 function SimiliApp() {
   const { client, setConfig, setModel, connect, disconnect, connected } = useLiveAPIContext();
   // Remove local isConnected state - use connected from context
-  const [isConnecting, setIsConnecting] = useState(false);
   const [canvasImageData, setCanvasImageData] = useState<string>('');
+  const debouncedCanvasData = useDebounce(canvasImageData, 2000); // Debounce canvas updates by 2 seconds
   const [problemImage, setProblemImage] = useState<string>('');
   const [showVoicePermission, setShowVoicePermission] = useState(false);
   const [showTeacherPanel, setShowTeacherPanel] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
+  const [isManualDisconnect, setIsManualDisconnect] = useState(false);
 
   useEffect(() => {
     // Configure Pi tutor with Gemini Live model
@@ -45,7 +46,6 @@ function SimiliApp() {
 
     // Set up event listeners
     const handleOpen = () => {
-      setIsConnecting(false);
       console.log('Connected to Gemini Live');
       // Start session recording
       sessionRecorder.startSession('pizza-fractions-1');
@@ -54,6 +54,24 @@ function SimiliApp() {
     const handleClose = (event: any) => {
       // Connection state handled by context
       console.log('Disconnected from Gemini Live', event);
+      console.log('Close event details:', {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean
+      });
+      
+      // If it wasn't a manual disconnect, try to reconnect
+      if (!isManualDisconnect && selectedLesson) {
+        console.log('Unexpected disconnect detected, attempting to reconnect...');
+        setTimeout(() => {
+          if (!connected && !isManualDisconnect) {
+            console.log('Attempting automatic reconnection...');
+            connectWithRetry().catch(error => {
+              console.error('Auto-reconnection failed:', error);
+            });
+          }
+        }, 2000); // Wait 2 seconds before reconnecting
+      }
     };
     
     const handleError = (error: any) => {
@@ -107,7 +125,7 @@ function SimiliApp() {
     };
   }, [client]);
 
-  const { connectWithRetry, isRetrying, retryCount, reset } = useConnectionRetry(
+  const { connectWithRetry, reset } = useConnectionRetry(
     connect,
     3, // max retries
     2000 // initial delay
@@ -119,13 +137,11 @@ function SimiliApp() {
 
   const handleVoiceAllow = async () => {
     setShowVoicePermission(false);
-    setIsConnecting(true);
     try {
       console.log('Attempting to connect to Gemini Live...');
       await connectWithRetry();
-      console.log('Connection initiated');
+      console.log('Connection initiated - session will remain active until you click End Session');
     } catch (error) {
-      setIsConnecting(false);
       alert('Failed to connect after multiple attempts. Please check your API key and internet connection.');
       console.error('Connection error:', error);
     }
@@ -136,6 +152,8 @@ function SimiliApp() {
   };
 
   const handleDisconnect = () => {
+    console.log('Manual disconnect requested');
+    setIsManualDisconnect(true); // Prevent auto-reconnection
     reset(); // Reset retry logic
     const session = sessionRecorder.endSession();
     if (session) {
@@ -144,31 +162,97 @@ function SimiliApp() {
       console.log(`Total misconceptions: ${session.misconceptions.length}`);
     }
     disconnect();
+    setSelectedLesson(null); // Return to lesson selection
   };
 
   const handleCanvasChange = (imageData: string) => {
+    console.log('Canvas change detected, image data length:', imageData.length);
     setCanvasImageData(imageData);
-    // TODO: Implement vision sync with Gemini
-    // For now, just log it
-    console.log('Canvas updated');
   };
+
+  // Use effect to sync debounced canvas data
+  useEffect(() => {
+    console.log('Vision sync check:', {
+      hasCanvasData: !!debouncedCanvasData,
+      hasProblemImage: !!problemImage,
+      isConnected: connected,
+      hasClient: !!client
+    });
+    
+    if (debouncedCanvasData && problemImage && connected && client) {
+      console.log('All conditions met - sending to vision API');
+      sendToVisionAPI(problemImage, debouncedCanvasData);
+    } else {
+      console.log('Vision sync skipped - missing requirements');
+    }
+  }, [debouncedCanvasData, problemImage, connected, client]);
 
   const handleProblemImageUpload = (imageData: string) => {
     setProblemImage(imageData);
-    sendToVisionAPI(imageData, canvasImageData);
+    if (canvasImageData && connected && client) {
+      sendToVisionAPI(imageData, canvasImageData);
+    }
   };
 
   const sendToVisionAPI = (problemImg: string, canvasImg: string) => {
-    // TODO: Implement actual vision API call
-    console.log('Sending to vision API:', { problemImg, canvasImg });
-    // This would send both images to Gemini for analysis
+    if (!client || !connected) {
+      console.log('Vision API: Client not ready or not connected');
+      return;
+    }
+    
+    try {
+      // Convert data URLs to base64
+      const problemBase64 = problemImg.split(',')[1];
+      const canvasBase64 = canvasImg.split(',')[1];
+      
+      if (!problemBase64 || !canvasBase64) {
+        console.log('Vision API: Invalid image data');
+        return;
+      }
+      
+      console.log('Vision API: Sending problem and canvas images to Pi...');
+      
+      // Send both images with clear labels in one call
+      client.sendRealtimeInput([
+        {
+          mimeType: 'image/jpeg',
+          data: problemBase64
+        },
+        {
+          mimeType: 'image/jpeg', 
+          data: canvasBase64
+        }
+      ]);
+      
+      console.log('Vision API: Successfully sent both images to Pi');
+      
+      // Also send a brief context message to help Pi understand
+      setTimeout(() => {
+        if (client && connected) {
+          client.sendRealtimeInput([{
+            text: "I just sent you two images: first is the math problem, second is what I've drawn on my canvas. Can you see my work?"
+          }]);
+        }
+      }, 200);
+      
+    } catch (error) {
+      console.error('Error sending images to vision API:', error);
+    }
   };
 
   const handleLessonSelect = (lessonId: string) => {
     setSelectedLesson(lessonId);
-    // Auto-start connection for intro lesson
-    if (lessonId === 'intro-fractions') {
-      handleConnect();
+    setIsManualDisconnect(false); // Reset manual disconnect flag
+    // Auto-start connection for any lesson
+    handleConnect();
+  };
+
+  const handleManualSendToPi = () => {
+    if (canvasImageData && problemImage) {
+      console.log('Manual send to Pi requested');
+      sendToVisionAPI(problemImage, canvasImageData);
+    } else {
+      console.log('Manual send failed - missing canvas or problem image');
     }
   };
 
@@ -182,34 +266,22 @@ function SimiliApp() {
       <main className="simili-main">
         {!selectedLesson ? (
           <LessonHomepage onLessonSelect={handleLessonSelect} />
-        ) : !connected ? (
-          <div className="simili-welcome">
-            <div className="welcome-emoji">🎓</div>
-            <h2>Ready to learn?</h2>
-            <p>Hi! I'm Pi, your math buddy 🤖</p>
-            
-            <SketchyButton 
-              onClick={handleConnect}
-              size="large"
-              variant="primary"
-              disabled={isConnecting}
-            >
-              {isConnecting 
-                ? isRetrying 
-                  ? `Retrying... (${retryCount}/3)`
-                  : 'Connecting...' 
-                : 'Start! 🚀'}
-            </SketchyButton>
-          </div>
         ) : (
           <div className="simili-workspace">
             <div className="workspace-simple">
               {/* Problem Image - Fixed 30% width */}
               <div className="problem-section">
-                <ProblemDisplay onImageUpload={handleProblemImageUpload} />
+                <ProblemDisplay 
+                  onImageUpload={handleProblemImageUpload}
+                  lessonId={selectedLesson || undefined}
+                />
                 <div className="voice-status">
                   <VoiceInput />
-                  <span className="listening-indicator">🎤 Pi is listening</span>
+                  {connected ? (
+                    <span className="listening-indicator">🎤 Pi is listening</span>
+                  ) : (
+                    <span className="connecting-indicator">🔄 Connecting to Pi...</span>
+                  )}
                 </div>
               </div>
 
@@ -218,13 +290,22 @@ function SimiliApp() {
                 <UnifiedCanvas 
                   onCanvasChange={handleCanvasChange}
                   problemImage={problemImage}
+                  onSendToPi={handleManualSendToPi}
                 />
               </div>
             </div>
 
-            {/* Floating end button */}
-            <button className="end-session-btn" onClick={handleDisconnect}>
-              ✖️
+            {/* Floating end button with confirmation */}
+            <button 
+              className="end-session-btn" 
+              onClick={() => {
+                if (window.confirm('End your math session with Pi? 🤖\n\nYour progress will be saved!')) {
+                  handleDisconnect();
+                }
+              }}
+              title="End Session"
+            >
+              {connected ? '🛑' : '✖️'}
             </button>
 
             {/* Teacher panel */}

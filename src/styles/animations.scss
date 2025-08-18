@@ -1,0 +1,124 @@
+// Minimal, non-distracting animations
+
+// Gentle float for cards
+@keyframes gentleFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+// Soft scale for interactions
+@keyframes softScale {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.02);
+  }
+}
+
+// Smooth fade transitions
+@keyframes smoothFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+// Progress fill like honey
+@keyframes honeyFill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: var(--target-width, 100%);
+  }
+}
+
+// Shadow growth on hover
+@keyframes shadowGrow {
+  from {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  to {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  }
+}
+
+// Minimal celebration (just a gentle pulse)
+@keyframes minimalCelebrate {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+// Breathing effect for interactive elements
+@keyframes breathe {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+// Smooth spring transition
+@keyframes springIn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+// Utility classes for minimal animations
+.float-gentle {
+  animation: gentleFloat 4s ease-in-out infinite;
+}
+
+.hover-scale {
+  transition: transform 0.3s ease-out;
+  &:hover {
+    transform: scale(1.02);
+  }
+}
+
+.fade-smooth {
+  animation: smoothFade 0.3s ease-out;
+}
+
+.shadow-grow {
+  transition: box-shadow 0.3s ease-out;
+  &:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.spring-in {
+  animation: springIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.breathe-soft {
+  animation: breathe 3s ease-in-out infinite;
+}
+
+// Global transition rules for smoothness
+* {
+  transition: transform 0.2s ease-out, 
+              box-shadow 0.2s ease-out,
+              opacity 0.2s ease-out;
+}

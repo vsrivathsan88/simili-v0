@@ -1,0 +1,194 @@
+@import '../../config/variables';
+
+.visual-number-line-container {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 400px;
+
+  .line-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 20px;
+
+    button {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid $primary-color;
+      background: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+
+      .icon {
+        font-size: 18px;
+        color: $primary-color;
+      }
+
+      &:hover {
+        background: lighten($primary-color, 45%);
+        transform: scale(1.1);
+      }
+    }
+
+    .length-label {
+      font-weight: 600;
+      color: $text-primary;
+      min-width: 60px;
+      text-align: center;
+    }
+  }
+
+  .visual-number-line {
+    position: relative;
+    height: 80px;
+    cursor: pointer;
+    margin: 20px 0;
+
+    .line-track {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: #333;
+      transform: translateY(-50%);
+
+      &::before,
+      &::after {
+        content: '';
+        position: absolute;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+
+      &::before {
+        left: -8px;
+        border-width: 8px 8px 8px 0;
+        border-color: transparent #333 transparent transparent;
+      }
+
+      &::after {
+        right: -8px;
+        border-width: 8px 0 8px 8px;
+        border-color: transparent transparent transparent #333;
+      }
+    }
+
+    .tick-mark {
+      position: absolute;
+      top: 50%;
+      transform: translateX(-50%);
+
+      .tick {
+        width: 2px;
+        height: 16px;
+        background: #666;
+        margin: 0 auto;
+        transform: translateY(-50%);
+      }
+
+      .tick-label {
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 12px;
+        color: $text-secondary;
+        font-weight: 500;
+      }
+    }
+
+    .marker {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      transition: all 0.2s ease;
+      z-index: 10;
+
+      .marker-dot {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: inherit;
+        cursor: grab;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        transition: all 0.2s ease;
+
+        &:hover {
+          transform: scale(1.2);
+        }
+
+        &:active {
+          cursor: grabbing;
+        }
+      }
+
+      .marker-label {
+        position: absolute;
+        bottom: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .remove-marker {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: none;
+        background: #ff4444;
+        color: white;
+        font-size: 12px;
+        line-height: 1;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      &:hover .remove-marker {
+        opacity: 1;
+      }
+    }
+
+    .hover-indicator {
+      position: absolute;
+      top: 20%;
+      transform: translateX(-50%);
+      pointer-events: none;
+
+      .hover-value {
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .line-instructions {
+    text-align: center;
+    font-size: 12px;
+    color: $text-secondary;
+    font-style: italic;
+  }
+}

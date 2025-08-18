@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import './MinimalToolbar.scss';
 
 interface MinimalToolbarProps {
-  currentTool: 'pencil' | 'eraser';
+  currentTool: 'pencil' | 'eraser' | 'text';
   currentColor: string;
-  onToolChange: (tool: 'pencil' | 'eraser') => void;
+  onToolChange: (tool: 'pencil' | 'eraser' | 'text') => void;
   onColorChange: (color: string) => void;
   onClear: () => void;
+  onSendToPi?: () => void;
 }
 
 const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
@@ -14,7 +15,8 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
   currentColor,
   onToolChange,
   onColorChange,
-  onClear
+  onClear,
+  onSendToPi
 }) => {
   const [showColors, setShowColors] = useState(false);
   
@@ -60,7 +62,28 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
         🧹
       </button>
       
+      <button
+        className={`tool-btn ${currentTool === 'text' ? 'active' : ''}`}
+        onClick={() => {
+          onToolChange('text');
+          setShowColors(false);
+        }}
+        title="Text"
+      >
+        📝
+      </button>
+      
       <div className="toolbar-divider" />
+      
+      {onSendToPi && (
+        <button
+          className="tool-btn send-btn"
+          onClick={onSendToPi}
+          title="Send to Pi (for testing)"
+        >
+          👁️
+        </button>
+      )}
       
       <button
         className="tool-btn clear-btn"

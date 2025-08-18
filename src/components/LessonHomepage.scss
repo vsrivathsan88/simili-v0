@@ -1,170 +1,239 @@
 @import '../config/variables';
+@import '../styles/animations';
 
 .lesson-homepage {
   min-height: 100vh;
-  background: #f8f9fa;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   padding: 40px 20px;
 
   .homepage-header {
     text-align: center;
-    margin-bottom: 60px;
+    margin-bottom: 40px;
 
     h1 {
-      font-size: 48px;
+      font-size: 42px;
       font-family: $hand-drawn-font;
       color: $primary-color;
       margin: 0 0 8px;
+      @extend .fade-smooth;
     }
 
     p {
       font-size: 18px;
       color: $text-secondary;
+      font-weight: 500;
     }
   }
 
-  .lessons-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 32px;
-    max-width: 1200px;
-    margin: 0 auto 60px;
-  }
-
-  .lesson-card {
+  .playlist-container {
+    max-width: 800px;
+    margin: 0 auto;
     background: white;
-    border: none;
-    border-radius: 20px;
+    border-radius: 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    width: 100%;
-    text-align: left;
-    position: relative;
+    @extend .shadow-grow;
 
-    &:hover:not(.inactive) {
-      transform: translateY(-8px);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-    }
-
-    &.inactive {
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
-
-    .card-image {
-      height: 200px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .playlist-header {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      padding: 32px;
+      color: white;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-      position: relative;
-      overflow: hidden;
 
-      .lesson-emoji {
-        font-size: 80px;
-        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
-        animation: float 3s ease-in-out infinite;
+      .playlist-info {
+        h2 {
+          font-size: 28px;
+          font-weight: 700;
+          margin: 0 0 8px;
+          font-family: $hand-drawn-font;
+        }
+
+        p {
+          opacity: 0.9;
+          margin: 0;
+          font-size: 16px;
+        }
       }
 
-      .coming-soon {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.6);
+      .playlist-controls {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+
+        .shuffle-btn {
+          background: rgba(255, 255, 255, 0.2);
+          border: none;
+          padding: 12px;
+          border-radius: 12px;
+          font-size: 18px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          @extend .hover-scale;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.3);
+          }
+        }
+
+        .play-all-btn {
+          background: white;
+          color: #6366f1;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 24px;
+          font-weight: 600;
+          font-size: 16px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          @extend .hover-scale;
+
+          &:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          }
+        }
+      }
+    }
+
+    .lessons-playlist {
+      padding: 0;
+    }
+
+    .playlist-track {
+      border-bottom: 1px solid #f1f3f4;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &.active {
+        background: linear-gradient(90deg, #f8fafc 0%, white 100%);
+      }
+
+      &.inactive {
+        opacity: 0.6;
+
+        .track-button {
+          cursor: not-allowed;
+        }
+      }
+
+      .track-button {
+        width: 100%;
+        border: none;
+        background: none;
+        padding: 20px 32px;
         display: flex;
         align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 20px;
-        font-weight: 600;
-        backdrop-filter: blur(4px);
-      }
-    }
+        gap: 20px;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.2s ease;
 
-    .card-content {
-      padding: 24px;
-
-      .card-meta {
-        display: flex;
-        gap: 12px;
-        margin-bottom: 12px;
-
-        span {
-          font-size: 12px;
-          padding: 4px 12px;
-          border-radius: 20px;
-          background: #f0f0f0;
-          color: $text-secondary;
-          font-weight: 500;
+        &:hover:not(:disabled) {
+          background: #f8fafc;
+          transform: translateX(4px);
         }
 
-        .unit {
-          background: #e3f2fd;
-          color: #1976d2;
+        &:disabled {
+          cursor: not-allowed;
         }
 
-        .grade {
-          background: #f3e5f5;
-          color: #7b1fa2;
+        .track-number {
+          width: 40px;
+          text-align: center;
+
+          .play-icon {
+            font-size: 20px;
+            color: #10b981;
+            @extend .breathe-soft;
+          }
+
+          .track-index {
+            font-size: 18px;
+            font-weight: 600;
+            color: $text-secondary;
+          }
         }
-      }
 
-      h3 {
-        font-size: 24px;
-        font-weight: 600;
-        margin: 0 0 8px;
-        color: $text-primary;
-        font-family: $hand-drawn-font;
-      }
+        .track-visual {
+          .track-emoji {
+            font-size: 32px;
+            @extend .float-gentle;
+          }
+        }
 
-      .subtitle {
-        font-size: 16px;
-        color: $accent-blue;
-        margin: 0 0 12px;
-        font-weight: 500;
-      }
+        .track-info {
+          flex: 1;
 
-      .description {
-        font-size: 14px;
-        color: $text-secondary;
-        line-height: 1.6;
-        margin: 0;
-      }
-    }
+          .track-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 4px;
+            color: $text-primary;
+            font-family: $hand-drawn-font;
+          }
 
-    .start-button {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 24px;
-      background: #f8f9fa;
-      border-top: 1px solid #e0e0e0;
-      font-weight: 600;
-      color: $primary-color;
+          .track-subtitle {
+            font-size: 14px;
+            color: $text-secondary;
+            margin: 0 0 8px;
+          }
 
-      .arrow {
-        font-size: 20px;
-        transition: transform 0.2s ease;
-      }
+          .track-meta {
+            display: flex;
+            gap: 12px;
 
-      &:hover .arrow {
-        transform: translateX(4px);
+            .unit-badge {
+              font-size: 12px;
+              padding: 4px 12px;
+              border-radius: 12px;
+              background: #e0f2fe;
+              color: #0277bd;
+              font-weight: 500;
+            }
+
+            .difficulty {
+              font-size: 12px;
+              padding: 4px 12px;
+              border-radius: 12px;
+              background: #e8f5e8;
+              color: #2e7d32;
+              font-weight: 500;
+            }
+          }
+        }
+
+        .track-status {
+          .duration {
+            font-size: 14px;
+            color: $text-secondary;
+            font-weight: 500;
+          }
+
+          .coming-soon-badge {
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 12px;
+            background: #fff3cd;
+            color: #856404;
+            font-weight: 500;
+          }
+        }
       }
     }
   }
 
   .homepage-footer {
     text-align: center;
-    margin-top: 80px;
-    padding-top: 40px;
-    border-top: 1px solid #e0e0e0;
+    margin-top: 40px;
 
     p {
       color: $text-secondary;
-      font-size: 14px;
+      font-size: 16px;
+      font-weight: 500;
     }
   }
 }

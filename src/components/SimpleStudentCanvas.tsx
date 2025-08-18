@@ -10,7 +10,7 @@ interface SimpleStudentCanvasProps {
 }
 
 const SimpleStudentCanvas: React.FC<SimpleStudentCanvasProps> = ({ onCanvasChange }) => {
-  const [currentTool, setCurrentTool] = useState<'pencil' | 'eraser'>('pencil');
+  const [currentTool, setCurrentTool] = useState<'pencil' | 'eraser' | 'text'>('pencil');
   const [currentColor, setCurrentColor] = useState('#2a2a2a');
   const [manipulatives, setManipulatives] = useState<any[]>([]);
 
