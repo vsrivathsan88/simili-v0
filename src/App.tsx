@@ -229,9 +229,9 @@ function SimiliApp() {
       // Also send a brief context message to help Pi understand
       setTimeout(() => {
         if (client && connected) {
-          client.sendRealtimeInput([{
+          client.send({
             text: "I just sent you two images: first is the math problem, second is what I've drawn on my canvas. Can you see my work?"
-          }]);
+          });
         }
       }, 200);
       
