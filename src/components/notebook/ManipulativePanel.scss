@@ -1,4 +1,4 @@
-@import '../../config/designSystem.scss';
+@import '../../config/variables';
 
 .manipulative-panel {
   width: 200px;
@@ -53,9 +53,9 @@
 
   .tips {
     padding: 12px;
-    background: lighten($accent-yellow, 40%);
+    background: #fff8e1; // light yellow
     border-radius: 6px;
-    border: 1px solid lighten($accent-yellow, 20%);
+    border: 1px solid #ffecb3; // lighter yellow
 
     p {
       margin: 4px 0;
