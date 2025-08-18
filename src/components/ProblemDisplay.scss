@@ -1,0 +1,126 @@
+@import '../config/variables';
+
+.problem-display {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  .upload-area {
+    border: 3px dashed $primary-color;
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: lighten($primary-color, 48%);
+
+    &:hover {
+      background: lighten($primary-color, 45%);
+      transform: translateY(-2px);
+    }
+
+    .upload-content {
+      .upload-icon {
+        font-size: 48px;
+        display: block;
+        margin-bottom: 16px;
+      }
+
+      h3 {
+        font-size: 20px;
+        font-family: $hand-drawn-font;
+        color: $primary-color;
+        margin: 0 0 8px;
+      }
+
+      p {
+        font-size: 14px;
+        color: $text-secondary;
+        margin: 0 0 16px;
+
+        &.upload-hint {
+          font-size: 12px;
+          font-style: italic;
+          margin-top: 8px;
+        }
+      }
+    }
+  }
+
+  .problem-image-container {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+
+    .problem-image {
+      width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .change-image-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid $primary-color;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+      &:hover {
+        transform: scale(1.1);
+        background: $primary-color;
+      }
+    }
+  }
+
+  .sample-problems {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+
+    h4 {
+      font-size: 14px;
+      color: $text-secondary;
+      margin: 0 0 12px;
+      font-family: $hand-drawn-font;
+    }
+
+    .sample-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+
+      .sample-btn {
+        padding: 12px 8px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        background: white;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+
+        &:hover {
+          background: #f5f5f5;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+      }
+    }
+  }
+}

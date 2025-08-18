@@ -1,9 +1,9 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import rough from 'roughjs';
 import './StudentNotebook.scss';
 import { DrawingTool, DrawingMode, NotebookBackground } from './types/notebook';
 import ToolPanel from './notebook/ToolPanel';
 import ManipulativePanel from './notebook/ManipulativePanel';
+import OptimizedCanvas from './OptimizedCanvas';
 import DynamicFractionBar from './manipulatives/DynamicFractionBar';
 import DynamicNumberLine from './manipulatives/DynamicNumberLine';
 import BaseBlocks from './manipulatives/BaseBlocks';

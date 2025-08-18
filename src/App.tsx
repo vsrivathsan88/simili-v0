@@ -6,6 +6,8 @@ import { designSystem } from './config/designSystem';
 import { SketchyButton } from './components/ui/SketchyButton';
 import { VoiceInput } from './components/VoiceInput';
 import StudentNotebook from './components/StudentNotebook';
+import ProblemDisplay from './components/ProblemDisplay';
+import ReasoningTrace from './components/ReasoningTrace';
 import { ToolCallFeedback } from './components/ToolCallFeedback';
 import { handleToolCall } from './lib/toolImplementations';
 import { useConnectionRetry } from './hooks/useConnectionRetry';
@@ -19,6 +21,7 @@ function SimiliApp() {
   // Remove local isConnected state - use connected from context
   const [isConnecting, setIsConnecting] = useState(false);
   const [canvasImageData, setCanvasImageData] = useState<string>('');
+  const [problemImage, setProblemImage] = useState<string>('');
 
   useEffect(() => {
     // Configure Pi tutor with Gemini Live model
@@ -136,6 +139,12 @@ function SimiliApp() {
     console.log('Canvas updated');
   };
 
+  const handleProblemImageUpload = (imageData: string) => {
+    setProblemImage(imageData);
+    // TODO: Send to Gemini vision API
+    console.log('Problem image uploaded');
+  };
+
   return (
     <div className="simili-app" style={{ backgroundColor: designSystem.colors.paper }}>
       {connected && <ToolCallFeedback />}
@@ -165,23 +174,34 @@ function SimiliApp() {
           </div>
         ) : (
           <div className="simili-workspace">
-            <div className="simili-problem">
-              <h3>Pizza Fraction Problem</h3>
-              <p>Maria ordered 2 pizzas. She ate 3/4 of one pizza. How much pizza does she have left?</p>
-              <p style={{ fontSize: '14px', marginTop: '8px', opacity: 0.8 }}>
-                (Hint: Think about how much of the first pizza remains, plus the whole second pizza)
-              </p>
-            </div>
+            <div className="workspace-grid">
+              {/* Left Column: Problem & Reasoning */}
+              <div className="left-column">
+                <ProblemDisplay onImageUpload={handleProblemImageUpload} />
+                <ReasoningTrace />
+              </div>
 
-            <div className="simili-canvas-container">
-              <StudentNotebook onCanvasChange={handleCanvasChange} />
-            </div>
+              {/* Center: Student Notebook */}
+              <div className="center-column">
+                <StudentNotebook onCanvasChange={handleCanvasChange} />
+              </div>
 
-            <div className="simili-controls">
-              <VoiceInput />
-              <SketchyButton onClick={handleDisconnect} variant="secondary" size="small">
-                End Session
-              </SketchyButton>
+              {/* Right Column: Voice & Controls */}
+              <div className="right-column">
+                <div className="voice-section">
+                  <VoiceInput />
+                  <div className="tutor-status">
+                    <span className="status-indicator active"></span>
+                    <span className="status-text">Pi is listening...</span>
+                  </div>
+                </div>
+                
+                <div className="session-controls">
+                  <SketchyButton onClick={handleDisconnect} variant="secondary" size="small">
+                    End Session
+                  </SketchyButton>
+                </div>
+              </div>
             </div>
           </div>
         )}

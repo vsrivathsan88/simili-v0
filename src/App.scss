@@ -51,58 +51,106 @@
 }
 
 .simili-workspace {
-  display: grid;
-  gap: var(--spacing-xl);
-}
-
-.simili-problem {
-  background: white;
-  padding: var(--spacing-lg);
-  border: 2px dashed var(--color-primary);
-  border-radius: var(--radius-lg);
+  height: calc(100vh - 120px); // Account for header
+  overflow: hidden;
   
-  h3 {
-    font-family: var(--font-handwritten);
-    color: var(--color-primary);
-    margin: 0 0 var(--spacing-md);
+  .workspace-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr 280px;
+    gap: var(--spacing-lg);
+    height: 100%;
+    padding: 0 var(--spacing-lg);
   }
-  
-  p {
-    font-size: 18px;
-    line-height: 1.6;
-    margin: 0;
-  }
-}
 
-.simili-canvas-container {
-  background: transparent;
-  min-height: 600px;
-  position: relative;
-  
-  // Reset the StudentNotebook styles to fit properly
-  .student-notebook {
-    padding: 0;
+  .left-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    overflow-y: auto;
+    padding-right: var(--spacing-sm);
+    
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 3px;
+      
+      &:hover {
+        background: #555;
+      }
+    }
+  }
+
+  .center-column {
     background: transparent;
-    min-height: auto;
+    position: relative;
+    overflow: hidden;
+    
+    .student-notebook {
+      padding: 0;
+      background: transparent;
+      min-height: 100%;
+      height: 100%;
+    }
+  }
+
+  .right-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    
+    .voice-section {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      
+      .tutor-status {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        margin-top: var(--spacing-md);
+        padding: var(--spacing-sm);
+        background: #f5f5f5;
+        border-radius: var(--radius-md);
+        
+        .status-indicator {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #ccc;
+          
+          &.active {
+            background: var(--color-success);
+            animation: pulse 2s infinite;
+          }
+        }
+        
+        .status-text {
+          font-size: 14px;
+          color: var(--color-ink);
+        }
+      }
+    }
+    
+    .session-controls {
+      padding: var(--spacing-md);
+      text-align: center;
+    }
   }
 }
 
-.simili-canvas-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 400px;
-  color: var(--color-ink);
-  opacity: 0.5;
-  font-family: var(--font-handwritten);
-  font-size: 24px;
-}
-
-.simili-controls {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-md);
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 
 .voice-input {
