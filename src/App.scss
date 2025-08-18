@@ -75,11 +75,16 @@
 }
 
 .simili-canvas-container {
-  background: white;
-  border: 2px solid var(--color-ink);
-  border-radius: var(--radius-lg);
-  min-height: 400px;
+  background: transparent;
+  min-height: 600px;
   position: relative;
+  
+  // Reset the StudentNotebook styles to fit properly
+  .student-notebook {
+    padding: 0;
+    background: transparent;
+    min-height: auto;
+  }
 }
 
 .simili-canvas-placeholder {

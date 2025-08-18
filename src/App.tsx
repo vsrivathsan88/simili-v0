@@ -5,7 +5,7 @@ import { PI_SYSTEM_INSTRUCTION, piToolDeclarations } from './config/piTutor';
 import { designSystem } from './config/designSystem';
 import { SketchyButton } from './components/ui/SketchyButton';
 import { VoiceInput } from './components/VoiceInput';
-import { ManipulativeCanvas } from './components/ManipulativeCanvas';
+import StudentNotebook from './components/StudentNotebook';
 import { ToolCallFeedback } from './components/ToolCallFeedback';
 import { handleToolCall } from './lib/toolImplementations';
 import { useConnectionRetry } from './hooks/useConnectionRetry';
@@ -18,6 +18,7 @@ function SimiliApp() {
   const { client, setConfig, setModel, connect, disconnect, connected } = useLiveAPIContext();
   // Remove local isConnected state - use connected from context
   const [isConnecting, setIsConnecting] = useState(false);
+  const [canvasImageData, setCanvasImageData] = useState<string>('');
 
   useEffect(() => {
     // Configure Pi tutor with Gemini Live model
@@ -128,6 +129,13 @@ function SimiliApp() {
     disconnect();
   };
 
+  const handleCanvasChange = (imageData: string) => {
+    setCanvasImageData(imageData);
+    // TODO: Implement vision sync with Gemini
+    // For now, just log it
+    console.log('Canvas updated');
+  };
+
   return (
     <div className="simili-app" style={{ backgroundColor: designSystem.colors.paper }}>
       {connected && <ToolCallFeedback />}
@@ -166,7 +174,7 @@ function SimiliApp() {
             </div>
 
             <div className="simili-canvas-container">
-              <ManipulativeCanvas />
+              <StudentNotebook onCanvasChange={handleCanvasChange} />
             </div>
 
             <div className="simili-controls">
