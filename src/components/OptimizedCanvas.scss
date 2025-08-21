@@ -1,0 +1,13 @@
+@import '../config/variables';
+
+.optimized-canvas {
+  display: block;
+  background: white;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  
+  // Smooth cursor transitions
+  &:active {
+    cursor: crosshair !important;
+  }
+}

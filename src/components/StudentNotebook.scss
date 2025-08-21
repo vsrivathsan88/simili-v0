@@ -1,0 +1,55 @@
+@import '../config/designSystem.scss';
+
+.student-notebook {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  background-color: var(--color-paper);
+  min-height: 100vh;
+
+  .notebook-area {
+    flex: 1;
+    position: relative;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+
+    .drawing-canvas {
+      display: block;
+      cursor: crosshair;
+      
+      &:active {
+        cursor: crosshair;
+      }
+    }
+
+    .manipulatives-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+
+      .manipulative {
+        position: absolute;
+        pointer-events: all;
+        transition: transform 0.1s ease;
+        
+        &:hover {
+          transform: scale(1.02);
+        }
+
+        &.selected {
+          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+          z-index: 10;
+        }
+
+        &:active {
+          cursor: grabbing;
+        }
+      }
+    }
+  }
+}
