@@ -95,6 +95,11 @@ export class GenAILiveClient extends EventEmitter<LiveClientEventTypes> {
 
   constructor(options: LiveClientOptions) {
     super();
+    console.log('GenAILiveClient constructor called with options:', {
+      hasApiKey: !!options.apiKey,
+      apiKeyLength: options.apiKey?.length,
+      fullOptions: options
+    });
     this.client = new GoogleGenAI(options);
     this.send = this.send.bind(this);
     this.onopen = this.onopen.bind(this);
@@ -113,14 +118,18 @@ export class GenAILiveClient extends EventEmitter<LiveClientEventTypes> {
   }
 
   async connect(model: string, config: LiveConnectConfig): Promise<boolean> {
+    console.log('GenAILiveClient.connect called with:', { model, config });
+    
     if (this._status === "connected" || this._status === "connecting") {
+      console.log('Already connected or connecting, status:', this._status);
       return false;
     }
 
     this._status = "connecting";
     this.config = config;
     this._model = model;
-
+    
+    console.log('Creating callbacks...');
     const callbacks: LiveCallbacks = {
       onopen: this.onopen,
       onmessage: this.onmessage,
@@ -129,11 +138,17 @@ export class GenAILiveClient extends EventEmitter<LiveClientEventTypes> {
     };
 
     try {
+      console.log('About to call this.client.live.connect...');
+      console.log('this.client:', this.client);
+      console.log('this.client.live:', this.client.live);
+      
       this._session = await this.client.live.connect({
         model,
         config,
         callbacks,
       });
+      
+      console.log('Session created successfully:', !!this._session);
     } catch (e) {
       console.error("Error connecting to GenAI Live:", e);
       this._status = "disconnected";

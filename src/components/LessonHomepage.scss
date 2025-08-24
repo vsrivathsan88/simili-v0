@@ -53,8 +53,8 @@
           gap: 20px;
 
           .pi-avatar {
-            width: 160px;
-            height: 160px;
+            width: 260px;
+            height: 260px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -109,7 +109,7 @@
 
             p {
               margin: 0;
-              font-size: 14px;
+              font-size: 20px;
               color: $text-primary;
               line-height: 1.4;
               font-family: $hand-drawn-font;

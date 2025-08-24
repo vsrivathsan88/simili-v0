@@ -10,6 +10,7 @@ import TeacherPanel from './components/TeacherPanel';
 import VoicePermissionModal from './components/VoicePermissionModal';
 import LessonHomepage from './components/LessonHomepage';
 import LessonTransition from './components/LessonTransition';
+import LessonEntryPopup from './components/LessonEntryPopup';
 import { ToolCallFeedback } from './components/ToolCallFeedback';
 import { handleToolCall } from './lib/toolImplementations';
 import { useConnectionRetry } from './hooks/useConnectionRetry';
@@ -31,6 +32,10 @@ function SimiliApp() {
   const [isManualDisconnect, setIsManualDisconnect] = useState(false);
   const [showTransition, setShowTransition] = useState(false);
   const [transitionLesson, setTransitionLesson] = useState<string>('');
+  const [currentTool, setCurrentTool] = useState<'pencil' | 'eraser' | 'text'>('pencil');
+  const [currentColor, setCurrentColor] = useState('#2D3748');
+  const [showLessonEntry, setShowLessonEntry] = useState(false);
+  const [isProblemMinimized, setIsProblemMinimized] = useState(false);
 
   useEffect(() => {
     // Configure Pi tutor with Gemini Live model
@@ -341,7 +346,7 @@ function SimiliApp() {
   };
 
   const handleTransitionComplete = () => {
-    console.log('Transition completed, starting connection process...');
+    console.log('Transition completed, showing lesson entry popup...');
     setShowTransition(false);
     // Find the lesson ID from the title to set selected lesson properly
     const lessons = [
@@ -354,9 +359,8 @@ function SimiliApp() {
     ];
     const lesson = lessons.find(l => l.title === transitionLesson);
     setSelectedLesson(lesson?.id || 'intro-fractions');
-    // Start connection after transition
-    console.log('About to call handleConnect...');
-    handleConnect();
+    // Show lesson entry popup instead of auto-connecting
+    setShowLessonEntry(true);
   };
 
   const handleManualSendToPi = () => {
@@ -366,6 +370,63 @@ function SimiliApp() {
     } else {
       console.log('Manual send failed - missing canvas or problem image');
     }
+  };
+
+  // Kid-friendly color palette
+  const colors = [
+    { name: 'Dark Blue', value: '#2D3748' },
+    { name: 'Red', value: '#E53E3E' },
+    { name: 'Blue', value: '#3182CE' },
+    { name: 'Green', value: '#38A169' }
+  ];
+
+  const handleToolChange = (tool: 'pencil' | 'eraser' | 'text') => {
+    setCurrentTool(tool);
+  };
+
+  const handleClear = () => {
+    // This will be handled by the UnifiedCanvas component
+    console.log('Clear requested');
+  };
+
+  const handleAddManipulative = (type: 'fraction-bar' | 'number-line' | 'area-model' | 'array-grid' | 'fraction-circles' | 'visual-number-line') => {
+    console.log('Add manipulative requested:', type);
+    // The actual adding is handled by UnifiedCanvas
+  };
+
+  const handleLessonEntryStart = async () => {
+    console.log('Starting lesson from entry popup...');
+    console.log('API Key exists:', !!process.env.REACT_APP_GEMINI_API_KEY);
+    console.log('Client exists:', !!client);
+    console.log('Connected state:', connected);
+    setShowLessonEntry(false);
+    
+    // Check mic permission and connect
+    const hasPermission = await checkMicrophonePermission();
+    if (hasPermission) {
+      // Permission already granted, connect directly
+      try {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        console.log('About to call connectWithRetry...');
+        await connectWithRetry();
+        console.log('Connected! Pi will now give welcome message.');
+      } catch (error) {
+        console.error('Connection failed:', error);
+        console.error('Error details:', {
+          message: (error as Error).message,
+          stack: (error as Error).stack
+        });
+        alert('Failed to connect. Please check your API key and internet connection.');
+      }
+    } else {
+      // Need to request permission
+      setShowVoicePermission(true);
+    }
+  };
+
+  const handleLessonEntryCancel = () => {
+    setShowLessonEntry(false);
+    setSelectedLesson(null);
   };
 
   return (
@@ -386,80 +447,114 @@ function SimiliApp() {
           />
         ) : (
           <div className="simili-workspace">
-            <div className="workspace-simple">
-              {/* Full-width canvas */}
-              <div className="canvas-section">
+            <div className="workspace-canvas-first">
+              {/* Full screen canvas */}
+              <div className="canvas-full">
                 <UnifiedCanvas 
                   onCanvasChange={handleCanvasChange}
                   problemImage={problemImage}
                   onSendToPi={handleManualSendToPi}
+                  currentTool={currentTool}
+                  currentColor={currentColor}
+                  onToolChange={handleToolChange}
+                  onColorChange={setCurrentColor}
+                  onClear={handleClear}
                 />
               </div>
 
-              {/* Bottom manipulatives toolbar */}
-              <div className="manipulatives-toolbar">
-                <div className="manipulative-item">
-                  <div className="manipulative-icon">🍕</div>
-                  <span>Pizza Fractions</span>
-                </div>
-                <div className="manipulative-item">
-                  <div className="manipulative-icon">📊</div>
-                  <span>Bar Chart</span>
-                </div>
-                <div className="manipulative-item">
-                  <div className="manipulative-icon">📏</div>
-                  <span>Number Line</span>
-                </div>
-                <div className="manipulative-item">
-                  <div className="manipulative-icon">⭕</div>
-                  <span>Circles</span>
-                </div>
-                <div className="manipulative-item">
-                  <div className="manipulative-icon">🧮</div>
-                  <span>Counters</span>
-                </div>
-                <div className="manipulative-item">
-                  <div className="manipulative-icon">📐</div>
-                  <span>Shapes</span>
-                </div>
+              {/* Floating problem card */}
+              <div className={`floating-problem-card ${isProblemMinimized ? 'minimized' : ''}`}
+                onClick={() => isProblemMinimized && setIsProblemMinimized(false)}>
+                {!isProblemMinimized && (
+                  <>
+                    <button 
+                      className="minimize-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsProblemMinimized(true);
+                      }}
+                    >
+                      −
+                    </button>
+                    <div className="problem-content">
+                      <ProblemDisplay 
+                        onImageUpload={handleProblemImageUpload}
+                        lessonId={selectedLesson || undefined}
+                      />
+                      <button 
+                        className="end-session-btn" 
+                        onClick={() => {
+                          if (window.confirm('End your adventure with Pi? 🚀\n\nYour thinking will be saved!')) {
+                            handleDisconnect();
+                          }
+                        }}
+                      >
+                        End Adventure
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
 
-            {/* Floating problem card */}
-            <div className="problem-card">
-              <div className="problem-content">
-                <ProblemDisplay 
-                  onImageUpload={handleProblemImageUpload}
-                  lessonId={selectedLesson || undefined}
-                />
-                <div className="voice-status">
-                  <VoiceInput />
+              {/* Floating mini toolbar */}
+              <div className="floating-toolbar">
+                {/* Drawing tools */}
+                <button 
+                  className={`tool-btn ${currentTool === 'pencil' ? 'active' : ''}`}
+                  onClick={() => handleToolChange('pencil')}
+                  title="Pencil"
+                >
+                  ✏️
+                </button>
+                <button 
+                  className={`tool-btn ${currentTool === 'eraser' ? 'active' : ''}`}
+                  onClick={() => handleToolChange('eraser')}
+                  title="Eraser"
+                >
+                  🧽
+                </button>
+                
+                <div className="divider" />
+                
+                {/* Colors */}
+                {colors.map((color) => (
+                  <button
+                    key={color.value}
+                    className={`color-btn ${currentColor === color.value ? 'active' : ''}`}
+                    style={{ backgroundColor: color.value }}
+                    onClick={() => setCurrentColor(color.value)}
+                    title={color.name}
+                  >
+                    {currentColor === color.value ? '✓' : ''}
+                  </button>
+                ))}
+                
+                <div className="divider" />
+                
+                {/* Clear */}
+                <button 
+                  className="tool-btn clear-btn"
+                  onClick={handleClear}
+                  title="Clear everything"
+                >
+                  🗑️
+                </button>
+              </div>
+
+              {/* Floating Pi indicator */}
+              <div className="floating-pi-indicator">
+                <div className="pi-avatar-small">
+                  <img src="/assets/pi-character.png" alt="Pi" />
+                </div>
+                <span className={`pi-status ${connected ? 'listening' : 'connecting'}`}>
                   {connected ? (
-                    <span className="listening-indicator">🎤 Pi is listening</span>
+                    <VoiceInput />
                   ) : (
-                    <span className="connecting-indicator">🔄 Connecting to Pi...</span>
+                    'Getting ready...'
                   )}
-                </div>
+                </span>
               </div>
             </div>
-
-            {/* Floating Pi helper */}
-            <div className="pi-helper">
-              <img src="/assets/pi-character.png" alt="Pi helper" />
-            </div>
-
-            {/* Floating end button with confirmation */}
-            <button 
-              className="end-session-btn" 
-              onClick={() => {
-                if (window.confirm('End your math session with Pi? 🤖\n\nYour progress will be saved!')) {
-                  handleDisconnect();
-                }
-              }}
-              title="End Session"
-            >
-              {connected ? '🛑' : '✖️'}
-            </button>
 
             {/* Teacher panel */}
             <TeacherPanel 
@@ -474,6 +569,13 @@ function SimiliApp() {
         isOpen={showVoicePermission}
         onAllow={handleVoiceAllow}
         onDeny={handleVoiceDeny}
+      />
+
+      <LessonEntryPopup
+        isOpen={showLessonEntry}
+        lessonTitle={transitionLesson}
+        onStart={handleLessonEntryStart}
+        onCancel={handleLessonEntryCancel}
       />
     </div>
   );

@@ -15,10 +15,6 @@
  */
 
 import { audioContext } from "./utils";
-import AudioRecordingWorklet from "./worklets/audio-processing";
-import VolMeterWorket from "./worklets/vol-meter";
-
-import { createWorketFromSrc } from "./audioworklet-registry";
 import EventEmitter from "eventemitter3";
 
 function arrayBufferToBase64(buffer: ArrayBuffer) {
@@ -51,18 +47,28 @@ export class AudioRecorder extends EventEmitter {
     }
 
     this.starting = new Promise(async (resolve, reject) => {
-      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      this.audioContext = await audioContext({ sampleRate: this.sampleRate });
-      this.source = this.audioContext.createMediaStreamSource(this.stream);
+      try {
+        console.log('AudioRecorder: Getting user media...');
+        this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('AudioRecorder: Got media stream');
+        
+        this.audioContext = await audioContext({ sampleRate: this.sampleRate });
+        console.log('AudioRecorder: Created audio context');
+        
+        this.source = this.audioContext.createMediaStreamSource(this.stream);
+        console.log('AudioRecorder: Created media stream source');
 
-      const workletName = "audio-recorder-worklet";
-      const src = createWorketFromSrc(workletName, AudioRecordingWorklet);
+        const workletName = "audio-recorder-worklet";
+        console.log('AudioRecorder: Loading worklet from public folder');
 
-      await this.audioContext.audioWorklet.addModule(src);
-      this.recordingWorklet = new AudioWorkletNode(
-        this.audioContext,
-        workletName,
-      );
+        await this.audioContext.audioWorklet.addModule('/audio-recorder-worklet.js');
+        console.log('AudioRecorder: Added worklet module');
+        
+        this.recordingWorklet = new AudioWorkletNode(
+          this.audioContext,
+          workletName,
+        );
+        console.log('AudioRecorder: Created AudioWorkletNode');
 
       this.recordingWorklet.port.onmessage = async (ev: MessageEvent) => {
         // worklet processes recording floats and messages converted buffer
@@ -77,9 +83,7 @@ export class AudioRecorder extends EventEmitter {
 
       // vu meter worklet
       const vuWorkletName = "vu-meter";
-      await this.audioContext.audioWorklet.addModule(
-        createWorketFromSrc(vuWorkletName, VolMeterWorket),
-      );
+      await this.audioContext.audioWorklet.addModule('/vu-meter-worklet.js');
       this.vuWorklet = new AudioWorkletNode(this.audioContext, vuWorkletName);
       this.vuWorklet.port.onmessage = (ev: MessageEvent) => {
         this.emit("volume", ev.data.volume);
@@ -89,7 +93,13 @@ export class AudioRecorder extends EventEmitter {
       this.recording = true;
       resolve();
       this.starting = null;
+      } catch (error) {
+        console.error('AudioRecorder: Error during initialization:', error);
+        reject(error);
+      }
     });
+    
+    return this.starting;
   }
 
   stop() {

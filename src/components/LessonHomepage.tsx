@@ -97,7 +97,7 @@ const LessonHomepage: React.FC<LessonHomepageProps> = ({ onLessonSelect }) => {
                 <div className="pi-sparkles">✨</div>
               </div>
               <div className="pi-speech-bubble">
-                <p>🚀 Ready for math magic?</p>
+                <p>👋 Hi! I am Pi!</p>
               </div>
             </div>
           </div>

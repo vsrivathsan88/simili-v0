@@ -1,6 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
 import './UnifiedCanvas.scss';
-import MinimalToolbar from './MinimalToolbar';
 import GameFractionBar from './manipulatives/GameFractionBar';
 import DynamicNumberLine from './manipulatives/DynamicNumberLine';
 import AreaModel from './manipulatives/AreaModel';
@@ -13,6 +12,12 @@ interface UnifiedCanvasProps {
   onCanvasChange?: (imageData: string) => void;
   problemImage?: string;
   onSendToPi?: () => void;
+  currentTool?: 'pencil' | 'eraser' | 'text';
+  currentColor?: string;
+  onToolChange?: (tool: 'pencil' | 'eraser' | 'text') => void;
+  onColorChange?: (color: string) => void;
+  onClear?: () => void;
+  onAddManipulative?: (type: 'fraction-bar' | 'number-line' | 'area-model' | 'array-grid' | 'fraction-circles' | 'visual-number-line') => void;
 }
 
 interface Manipulative {
@@ -23,33 +28,29 @@ interface Manipulative {
   data: any;
 }
 
-const UnifiedCanvas: React.FC<UnifiedCanvasProps> = ({ onCanvasChange, problemImage, onSendToPi }) => {
-  const [currentTool, setCurrentTool] = useState<'pencil' | 'eraser' | 'text'>('pencil');
-  const [currentColor, setCurrentColor] = useState('#2D3748'); // Default dark color
+const UnifiedCanvas: React.FC<UnifiedCanvasProps> = ({ 
+  onCanvasChange, 
+  problemImage, 
+  onSendToPi,
+  currentTool = 'pencil',
+  currentColor = '#2D3748',
+  onToolChange,
+  onColorChange,
+  onClear,
+  onAddManipulative
+}) => {
   const [manipulatives, setManipulatives] = useState<Manipulative[]>([]);
   const [isDragging, setIsDragging] = useState<string | null>(null);
   const [textInput, setTextInput] = useState<{ x: number; y: number; text: string } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  // Kid-friendly color palette
-  const colors = [
-    { name: 'Dark Blue', value: '#2D3748', emoji: '🖤' },
-    { name: 'Red', value: '#E53E3E', emoji: '❤️' },
-    { name: 'Blue', value: '#3182CE', emoji: '💙' },
-    { name: 'Green', value: '#38A169', emoji: '💚' }
-  ];
+  const [clearTrigger, setClearTrigger] = useState(0);
 
   const handleClear = () => {
     setManipulatives([]);
     // Clear the canvas by triggering a state change
     setClearTrigger(prev => prev + 1);
-  };
-
-  const [clearTrigger, setClearTrigger] = useState(0);
-
-  const handleToolChange = (tool: 'pencil' | 'eraser' | 'text') => {
-    setCurrentTool(tool);
+    if (onClear) onClear();
   };
 
   const addManipulative = (type: Manipulative['type']) => {
@@ -71,6 +72,7 @@ const UnifiedCanvas: React.FC<UnifiedCanvasProps> = ({ onCanvasChange, problemIm
         : { length: 10, markers: [] } // visual-number-line
     };
     setManipulatives(prev => [...prev, newManipulative]);
+    if (onAddManipulative) onAddManipulative(type);
   };
 
   const updateManipulative = (id: string, data: any) => {
@@ -108,17 +110,7 @@ const UnifiedCanvas: React.FC<UnifiedCanvasProps> = ({ onCanvasChange, problemIm
 
   return (
     <div className="unified-canvas" ref={containerRef}>
-      {/* Floating toolbar */}
-      <MinimalToolbar
-        currentTool={currentTool}
-        currentColor={currentColor}
-        onToolChange={handleToolChange}
-        onColorChange={setCurrentColor}
-        onClear={handleClear}
-        onSendToPi={onSendToPi}
-      />
-
-      {/* Main canvas - always in background */}
+      {/* Main canvas - full screen */}
       <div className="canvas-layer">
         <EnhancedCanvas
           width={800}
@@ -193,45 +185,6 @@ const UnifiedCanvas: React.FC<UnifiedCanvasProps> = ({ onCanvasChange, problemIm
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Quick add buttons - Visual only */}
-      <div className="quick-add-tools">
-        <button 
-          onClick={() => addManipulative('fraction-bar')}
-          title="Add bars"
-        >
-          <span className="icon">▭</span>
-          <span className="label">Bars</span>
-        </button>
-        <button 
-          onClick={() => addManipulative('fraction-circles')}
-          title="Add circles"
-        >
-          <span className="icon">◯</span>
-          <span className="label">Circles</span>
-        </button>
-        <button 
-          onClick={() => addManipulative('visual-number-line')}
-          title="Add line"
-        >
-          <span className="icon">━</span>
-          <span className="label">Line</span>
-        </button>
-        <button 
-          onClick={() => addManipulative('area-model')}
-          title="Add grid"
-        >
-          <span className="icon">⊞</span>
-          <span className="label">Grid</span>
-        </button>
-        <button 
-          onClick={() => addManipulative('array-grid')}
-          title="Add dots"
-        >
-          <span className="icon">⚫</span>
-          <span className="label">Dots</span>
-        </button>
       </div>
     </div>
   );
