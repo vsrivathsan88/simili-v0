@@ -1,0 +1,131 @@
+@import '../../config/variables';
+
+.array-grid {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: inline-block;
+
+  .array-controls {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    justify-content: center;
+
+    .dimension-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      button {
+        width: 28px;
+        height: 28px;
+        border: 2px solid $accent-blue;
+        border-radius: 50%;
+        background: white;
+        color: $accent-blue;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: $accent-blue;
+          color: white;
+          transform: scale(1.1);
+        }
+      }
+
+      span {
+        font-weight: 600;
+        color: $text-primary;
+        font-size: 14px;
+        min-width: 60px;
+        text-align: center;
+      }
+    }
+  }
+
+  .array-display {
+    display: grid;
+    gap: 8px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 16px;
+
+    &.show-grouping {
+      .array-dot {
+        &.grouped-row {
+          background: rgba($accent-blue, 0.1);
+        }
+        
+        &.grouped-col {
+          background: rgba($accent-green, 0.1);
+        }
+        
+        &.grouped-row.grouped-col {
+          background: rgba($primary-color, 0.1);
+        }
+      }
+    }
+
+    .array-dot {
+      width: 100%;
+      padding-top: 100%; // Square aspect ratio
+      position: relative;
+      border-radius: 4px;
+      transition: background 0.2s ease;
+
+      .dot {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 16px;
+        height: 16px;
+        background: $primary-color;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+    }
+  }
+
+  .array-equation {
+    text-align: center;
+    margin-bottom: 12px;
+
+    .equation {
+      font-size: 20px;
+      color: $text-primary;
+
+      strong {
+        color: $primary-color;
+        font-size: 24px;
+      }
+    }
+  }
+
+  .grouping-toggle {
+    width: 100%;
+    padding: 8px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background: white;
+    font-size: 14px;
+    font-weight: 600;
+    color: $text-secondary;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #f8f9fa;
+      border-color: $primary-color;
+      color: $primary-color;
+    }
+  }
+}

@@ -96,11 +96,19 @@ export function useLiveAPI(options: LiveClientOptions): UseLiveAPIResults {
   }, [client]);
 
   const connect = useCallback(async () => {
+    console.log('LiveAPI connect called, config:', config);
+    console.log('Model:', model);
     if (!config) {
       throw new Error("config has not been set");
     }
+    // Check if config has required properties
+    if (!config.systemInstruction || !config.tools) {
+      console.warn('Config may be incomplete:', config);
+    }
     client.disconnect();
+    console.log('About to call client.connect...');
     await client.connect(model, config);
+    console.log('client.connect completed');
   }, [client, config, model]);
 
   const disconnect = useCallback(async () => {

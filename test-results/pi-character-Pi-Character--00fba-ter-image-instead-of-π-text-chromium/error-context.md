@@ -1,0 +1,72 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - heading "Simili" [level=1] [ref=e5]
+  - main [ref=e6]:
+    - generic [ref=e7]:
+      - generic [ref=e9]:
+        - generic [ref=e11]:
+          - generic [ref=e12]: π
+          - generic [ref=e13]:
+            - paragraph [ref=e14]: Hi! I'm Pi, your learning companion.
+            - paragraph [ref=e15]: Ready to discover something amazing?
+        - generic [ref=e16]:
+          - generic [ref=e18]: 🍕
+          - generic [ref=e19]:
+            - generic [ref=e20]:
+              - generic [ref=e21]: "1"
+              - generic [ref=e22]: Discover how things can be shared
+            - heading "Parts & Wholes" [level=1] [ref=e23]
+            - paragraph [ref=e24]: Explore with pizza, cake, and other delicious examples. It's going to be fun!
+            - generic [ref=e25]:
+              - button "Let's Begin" [ref=e26] [cursor=pointer]
+              - generic [ref=e28]: ~10 min • At your own pace
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - heading "More to Explore" [level=2] [ref=e31]
+          - paragraph [ref=e32]: Available after you complete the current activity
+        - generic [ref=e33]:
+          - button "🍰 2 Same Amount, Different Ways Amazing patterns to discover Soon" [disabled] [ref=e35]:
+            - generic [ref=e36]:
+              - generic [ref=e37]: 🍰
+              - generic [ref=e38]: "2"
+            - generic [ref=e39]:
+              - heading "Same Amount, Different Ways" [level=3] [ref=e40]
+              - paragraph [ref=e41]: Amazing patterns to discover
+            - generic [ref=e43]: Soon
+          - button "🍪 3 Bigger or Smaller? Visual detective work Soon" [disabled] [ref=e45]:
+            - generic [ref=e46]:
+              - generic [ref=e47]: 🍪
+              - generic [ref=e48]: "3"
+            - generic [ref=e49]:
+              - heading "Bigger or Smaller?" [level=3] [ref=e50]
+              - paragraph [ref=e51]: Visual detective work
+            - generic [ref=e53]: Soon
+          - button "📏 4 Finding Your Spot Like a treasure map Soon" [disabled] [ref=e55]:
+            - generic [ref=e56]:
+              - generic [ref=e57]: 📏
+              - generic [ref=e58]: "4"
+            - generic [ref=e59]:
+              - heading "Finding Your Spot" [level=3] [ref=e60]
+              - paragraph [ref=e61]: Like a treasure map
+            - generic [ref=e63]: Soon
+          - button "🧱 5 Special One-Pieces The building blocks Soon" [disabled] [ref=e65]:
+            - generic [ref=e66]:
+              - generic [ref=e67]: 🧱
+              - generic [ref=e68]: "5"
+            - generic [ref=e69]:
+              - heading "Special One-Pieces" [level=3] [ref=e70]
+              - paragraph [ref=e71]: The building blocks
+            - generic [ref=e73]: Soon
+          - button "📝 6 Real-Life Stories Where you'll actually use this Soon" [disabled] [ref=e75]:
+            - generic [ref=e76]:
+              - generic [ref=e77]: 📝
+              - generic [ref=e78]: "6"
+            - generic [ref=e79]:
+              - heading "Real-Life Stories" [level=3] [ref=e80]
+              - paragraph [ref=e81]: Where you'll actually use this
+            - generic [ref=e83]: Soon
+      - paragraph [ref=e85]: Take your time. We're here to support you every step of the way.
+```

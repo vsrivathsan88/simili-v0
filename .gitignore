@@ -24,3 +24,4 @@ yarn-error.log*
 # IDE
 .idea
 .vscodelive-api-web-console/
+live-api-web-console/

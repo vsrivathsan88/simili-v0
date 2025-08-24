@@ -3,16 +3,18 @@ import { LiveAPIProvider } from './contexts/LiveAPIContext';
 import { useLiveAPIContext } from './contexts/LiveAPIContext';
 import { PI_SYSTEM_INSTRUCTION, piToolDeclarations } from './config/piTutor';
 import { designSystem } from './config/designSystem';
-import { SketchyButton } from './components/ui/SketchyButton';
 import { VoiceInput } from './components/VoiceInput';
 import UnifiedCanvas from './components/UnifiedCanvas';
 import ProblemDisplay from './components/ProblemDisplay';
 import TeacherPanel from './components/TeacherPanel';
 import VoicePermissionModal from './components/VoicePermissionModal';
 import LessonHomepage from './components/LessonHomepage';
+import LessonTransition from './components/LessonTransition';
+import LessonEntryPopup from './components/LessonEntryPopup';
 import { ToolCallFeedback } from './components/ToolCallFeedback';
 import { handleToolCall } from './lib/toolImplementations';
 import { useConnectionRetry } from './hooks/useConnectionRetry';
+import { useDebounce } from './hooks/useDebounce';
 import { sessionRecorder } from './lib/sessionRecorder';
 import { Modality } from '@google/genai';
 import './App.scss';
@@ -21,12 +23,19 @@ import './App.scss';
 function SimiliApp() {
   const { client, setConfig, setModel, connect, disconnect, connected } = useLiveAPIContext();
   // Remove local isConnected state - use connected from context
-  const [isConnecting, setIsConnecting] = useState(false);
   const [canvasImageData, setCanvasImageData] = useState<string>('');
+  const debouncedCanvasData = useDebounce(canvasImageData, 2000); // Debounce canvas updates by 2 seconds
   const [problemImage, setProblemImage] = useState<string>('');
   const [showVoicePermission, setShowVoicePermission] = useState(false);
   const [showTeacherPanel, setShowTeacherPanel] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
+  const [isManualDisconnect, setIsManualDisconnect] = useState(false);
+  const [showTransition, setShowTransition] = useState(false);
+  const [transitionLesson, setTransitionLesson] = useState<string>('');
+  const [currentTool, setCurrentTool] = useState<'pencil' | 'eraser' | 'text'>('pencil');
+  const [currentColor, setCurrentColor] = useState('#2D3748');
+  const [showLessonEntry, setShowLessonEntry] = useState(false);
+  const [isProblemMinimized, setIsProblemMinimized] = useState(false);
 
   useEffect(() => {
     // Configure Pi tutor with Gemini Live model
@@ -45,7 +54,6 @@ function SimiliApp() {
 
     // Set up event listeners
     const handleOpen = () => {
-      setIsConnecting(false);
       console.log('Connected to Gemini Live');
       // Start session recording
       sessionRecorder.startSession('pizza-fractions-1');
@@ -54,6 +62,24 @@ function SimiliApp() {
     const handleClose = (event: any) => {
       // Connection state handled by context
       console.log('Disconnected from Gemini Live', event);
+      console.log('Close event details:', {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean
+      });
+      
+      // If it wasn't a manual disconnect, try to reconnect
+      if (!isManualDisconnect && selectedLesson) {
+        console.log('Unexpected disconnect detected, attempting to reconnect...');
+        setTimeout(() => {
+          if (!connected && !isManualDisconnect) {
+            console.log('Attempting automatic reconnection...');
+            connectWithRetry().catch(error => {
+              console.error('Auto-reconnection failed:', error);
+            });
+          }
+        }, 2000); // Wait 2 seconds before reconnecting
+      }
     };
     
     const handleError = (error: any) => {
@@ -107,25 +133,86 @@ function SimiliApp() {
     };
   }, [client]);
 
-  const { connectWithRetry, isRetrying, retryCount, reset } = useConnectionRetry(
+  const { connectWithRetry, reset } = useConnectionRetry(
     connect,
     3, // max retries
     2000 // initial delay
   );
 
+  const checkMicrophonePermission = async (): Promise<boolean> => {
+    try {
+      const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+      return result.state === 'granted';
+    } catch (error) {
+      // Fallback for browsers that don't support permissions API
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(track => track.stop());
+        return true;
+      } catch {
+        return false;
+      }
+    }
+  };
+
   const handleConnect = async () => {
-    setShowVoicePermission(true);
+    console.log('handleConnect called, current connected state:', connected);
+    
+    // If already connected, no need to reconnect
+    if (connected) {
+      console.log('Already connected, skipping connection attempt');
+      return;
+    }
+    
+    console.log('Checking microphone permission...');
+    try {
+      const hasPermission = await checkMicrophonePermission();
+      console.log('Permission check result:', hasPermission);
+      
+      if (hasPermission) {
+        // Permission already granted, connect directly
+        try {
+          console.log('Permission already granted, attempting connection...');
+          
+          // Add a small delay to ensure any previous connection is fully closed
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await connectWithRetry();
+          console.log('Connection initiated - session will remain active until you click End Session');
+        } catch (error) {
+          console.error('Connection failed:', error);
+          if ((error as Error).message?.includes('CLOSING') || (error as Error).message?.includes('CLOSED')) {
+            console.log('WebSocket was closing, retrying in 2 seconds...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            try {
+              await connectWithRetry();
+              console.log('Retry connection successful');
+            } catch (retryError) {
+              alert('Failed to connect after multiple attempts. Please check your API key and internet connection.');
+              console.error('Retry connection error:', retryError);
+            }
+          } else {
+            alert('Failed to connect. Please check your API key and internet connection.');
+          }
+        }
+      } else {
+        // Need to request permission
+        console.log('Permission not granted, showing permission modal...');
+        setShowVoicePermission(true);
+      }
+    } catch (error) {
+      console.error('Error in handleConnect:', error);
+      // Fallback to showing permission modal
+      setShowVoicePermission(true);
+    }
   };
 
   const handleVoiceAllow = async () => {
     setShowVoicePermission(false);
-    setIsConnecting(true);
     try {
       console.log('Attempting to connect to Gemini Live...');
       await connectWithRetry();
-      console.log('Connection initiated');
+      console.log('Connection initiated - session will remain active until you click End Session');
     } catch (error) {
-      setIsConnecting(false);
       alert('Failed to connect after multiple attempts. Please check your API key and internet connection.');
       console.error('Connection error:', error);
     }
@@ -135,7 +222,9 @@ function SimiliApp() {
     setShowVoicePermission(false);
   };
 
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
+    console.log('Manual disconnect requested');
+    setIsManualDisconnect(true); // Prevent auto-reconnection
     reset(); // Reset retry logic
     const session = sessionRecorder.endSession();
     if (session) {
@@ -143,89 +232,329 @@ function SimiliApp() {
       console.log(`Total reasoning steps: ${session.reasoningSteps.length}`);
       console.log(`Total misconceptions: ${session.misconceptions.length}`);
     }
+    
+    // Disconnect and wait a moment for cleanup
     disconnect();
+    console.log('Disconnecting... waiting for cleanup');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    setSelectedLesson(null); // Return to lesson selection
+    console.log('Returned to lesson selection');
   };
 
   const handleCanvasChange = (imageData: string) => {
+    console.log('Canvas change detected, image data length:', imageData.length);
     setCanvasImageData(imageData);
-    // TODO: Implement vision sync with Gemini
-    // For now, just log it
-    console.log('Canvas updated');
   };
+
+  // Use effect to sync debounced canvas data
+  useEffect(() => {
+    console.log('Vision sync check:', {
+      hasCanvasData: !!debouncedCanvasData,
+      hasProblemImage: !!problemImage,
+      isConnected: connected,
+      hasClient: !!client
+    });
+    
+    if (debouncedCanvasData && problemImage && connected && client) {
+      console.log('All conditions met - sending to vision API');
+      sendToVisionAPI(problemImage, debouncedCanvasData);
+    } else {
+      console.log('Vision sync skipped - missing requirements');
+    }
+  }, [debouncedCanvasData, problemImage, connected, client]);
 
   const handleProblemImageUpload = (imageData: string) => {
     setProblemImage(imageData);
-    sendToVisionAPI(imageData, canvasImageData);
+    if (canvasImageData && connected && client) {
+      sendToVisionAPI(imageData, canvasImageData);
+    }
   };
 
   const sendToVisionAPI = (problemImg: string, canvasImg: string) => {
-    // TODO: Implement actual vision API call
-    console.log('Sending to vision API:', { problemImg, canvasImg });
-    // This would send both images to Gemini for analysis
+    if (!client || !connected) {
+      console.log('Vision API: Client not ready or not connected');
+      return;
+    }
+    
+    try {
+      // Convert data URLs to base64
+      const problemBase64 = problemImg.split(',')[1];
+      const canvasBase64 = canvasImg.split(',')[1];
+      
+      if (!problemBase64 || !canvasBase64) {
+        console.log('Vision API: Invalid image data', {
+          hasProblemData: !!problemBase64,
+          hasCanvasData: !!canvasBase64,
+          problemImgStart: problemImg?.substring(0, 50),
+          canvasImgStart: canvasImg?.substring(0, 50)
+        });
+        return;
+      }
+      
+      console.log('Vision API: Sending problem and canvas images to Pi...');
+      console.log('Problem image size:', problemBase64.length, 'bytes');
+      console.log('Canvas image size:', canvasBase64.length, 'bytes');
+      console.log('Problem image type:', problemImg.split(',')[0]);
+      console.log('Canvas image type:', canvasImg.split(',')[0]);
+      
+      // Send both images with clear labels in one call
+      client.sendRealtimeInput([
+        {
+          mimeType: 'image/jpeg',
+          data: problemBase64
+        },
+        {
+          mimeType: 'image/jpeg', 
+          data: canvasBase64
+        }
+      ]);
+      
+      console.log('Vision API: Successfully sent both images to Pi');
+      
+      // Also send a clear context message to help Pi understand
+      setTimeout(() => {
+        if (client && connected) {
+          client.send({
+            text: "Hi Pi! I just sent you two images: (1) The math problem I'm working on, and (2) My current work on the canvas. Please look at both images and help guide me through this problem. Can you see what I've drawn so far?"
+          });
+        }
+      }, 200);
+      
+    } catch (error) {
+      console.error('Error sending images to vision API:', error);
+    }
   };
 
   const handleLessonSelect = (lessonId: string) => {
-    setSelectedLesson(lessonId);
-    // Auto-start connection for intro lesson
-    if (lessonId === 'intro-fractions') {
-      handleConnect();
+    console.log('Lesson selected:', lessonId);
+    const lessons = [
+      { id: 'intro-fractions', title: 'Parts & Wholes' },
+      { id: 'equivalent-fractions', title: 'Same Amount, Different Ways' },
+      { id: 'comparing-fractions', title: 'Bigger or Smaller?' },
+      { id: 'fractions-number-line', title: 'Finding Your Spot' },
+      { id: 'unit-fractions', title: 'Special One-Pieces' },
+      { id: 'fraction-word-problems', title: 'Real-Life Stories' }
+    ];
+    
+    const lesson = lessons.find(l => l.id === lessonId);
+    console.log('Found lesson:', lesson);
+    setTransitionLesson(lesson?.title || 'Math Adventures');
+    setShowTransition(true);
+    setIsManualDisconnect(false);
+    console.log('Starting transition for:', lesson?.title);
+  };
+
+  const handleTransitionComplete = () => {
+    console.log('Transition completed, showing lesson entry popup...');
+    setShowTransition(false);
+    // Find the lesson ID from the title to set selected lesson properly
+    const lessons = [
+      { id: 'intro-fractions', title: 'Parts & Wholes' },
+      { id: 'equivalent-fractions', title: 'Same Amount, Different Ways' },
+      { id: 'comparing-fractions', title: 'Bigger or Smaller?' },
+      { id: 'fractions-number-line', title: 'Finding Your Spot' },
+      { id: 'unit-fractions', title: 'Special One-Pieces' },
+      { id: 'fraction-word-problems', title: 'Real-Life Stories' }
+    ];
+    const lesson = lessons.find(l => l.title === transitionLesson);
+    setSelectedLesson(lesson?.id || 'intro-fractions');
+    // Show lesson entry popup instead of auto-connecting
+    setShowLessonEntry(true);
+  };
+
+  const handleManualSendToPi = () => {
+    if (canvasImageData && problemImage) {
+      console.log('Manual send to Pi requested');
+      sendToVisionAPI(problemImage, canvasImageData);
+    } else {
+      console.log('Manual send failed - missing canvas or problem image');
     }
+  };
+
+  // Kid-friendly color palette
+  const colors = [
+    { name: 'Dark Blue', value: '#2D3748' },
+    { name: 'Red', value: '#E53E3E' },
+    { name: 'Blue', value: '#3182CE' },
+    { name: 'Green', value: '#38A169' }
+  ];
+
+  const handleToolChange = (tool: 'pencil' | 'eraser' | 'text') => {
+    setCurrentTool(tool);
+  };
+
+  const handleClear = () => {
+    // This will be handled by the UnifiedCanvas component
+    console.log('Clear requested');
+  };
+
+  const handleAddManipulative = (type: 'fraction-bar' | 'number-line' | 'area-model' | 'array-grid' | 'fraction-circles' | 'visual-number-line') => {
+    console.log('Add manipulative requested:', type);
+    // The actual adding is handled by UnifiedCanvas
+  };
+
+  const handleLessonEntryStart = async () => {
+    console.log('Starting lesson from entry popup...');
+    console.log('API Key exists:', !!process.env.REACT_APP_GEMINI_API_KEY);
+    console.log('Client exists:', !!client);
+    console.log('Connected state:', connected);
+    setShowLessonEntry(false);
+    
+    // Check mic permission and connect
+    const hasPermission = await checkMicrophonePermission();
+    if (hasPermission) {
+      // Permission already granted, connect directly
+      try {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        console.log('About to call connectWithRetry...');
+        await connectWithRetry();
+        console.log('Connected! Pi will now give welcome message.');
+      } catch (error) {
+        console.error('Connection failed:', error);
+        console.error('Error details:', {
+          message: (error as Error).message,
+          stack: (error as Error).stack
+        });
+        alert('Failed to connect. Please check your API key and internet connection.');
+      }
+    } else {
+      // Need to request permission
+      setShowVoicePermission(true);
+    }
+  };
+
+  const handleLessonEntryCancel = () => {
+    setShowLessonEntry(false);
+    setSelectedLesson(null);
   };
 
   return (
     <div className="simili-app" style={{ backgroundColor: designSystem.colors.paper }}>
       {connected && <ToolCallFeedback />}
       <header className="simili-header">
-        <h1 className="simili-title">📚 Math with Pi</h1>
+        <h1 className="simili-title">Simili</h1>
       </header>
 
       <main className="simili-main">
-        {!selectedLesson ? (
+        {!selectedLesson && !showTransition ? (
           <LessonHomepage onLessonSelect={handleLessonSelect} />
-        ) : !connected ? (
-          <div className="simili-welcome">
-            <div className="welcome-emoji">🎓</div>
-            <h2>Ready to learn?</h2>
-            <p>Hi! I'm Pi, your math buddy 🤖</p>
-            
-            <SketchyButton 
-              onClick={handleConnect}
-              size="large"
-              variant="primary"
-              disabled={isConnecting}
-            >
-              {isConnecting 
-                ? isRetrying 
-                  ? `Retrying... (${retryCount}/3)`
-                  : 'Connecting...' 
-                : 'Start! 🚀'}
-            </SketchyButton>
-          </div>
+        ) : showTransition ? (
+          <LessonTransition 
+            isActive={showTransition}
+            lessonTitle={transitionLesson}
+            onComplete={handleTransitionComplete}
+          />
         ) : (
           <div className="simili-workspace">
-            <div className="workspace-simple">
-              {/* Problem Image - Fixed 30% width */}
-              <div className="problem-section">
-                <ProblemDisplay onImageUpload={handleProblemImageUpload} />
-                <div className="voice-status">
-                  <VoiceInput />
-                  <span className="listening-indicator">🎤 Pi is listening</span>
-                </div>
-              </div>
-
-              {/* Student Canvas - Takes remaining space */}
-              <div className="canvas-section">
+            <div className="workspace-canvas-first">
+              {/* Full screen canvas */}
+              <div className="canvas-full">
                 <UnifiedCanvas 
                   onCanvasChange={handleCanvasChange}
                   problemImage={problemImage}
+                  onSendToPi={handleManualSendToPi}
+                  currentTool={currentTool}
+                  currentColor={currentColor}
+                  onToolChange={handleToolChange}
+                  onColorChange={setCurrentColor}
+                  onClear={handleClear}
                 />
               </div>
-            </div>
 
-            {/* Floating end button */}
-            <button className="end-session-btn" onClick={handleDisconnect}>
-              ✖️
-            </button>
+              {/* Floating problem card */}
+              <div className={`floating-problem-card ${isProblemMinimized ? 'minimized' : ''}`}
+                onClick={() => isProblemMinimized && setIsProblemMinimized(false)}>
+                {!isProblemMinimized && (
+                  <>
+                    <button 
+                      className="minimize-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsProblemMinimized(true);
+                      }}
+                    >
+                      −
+                    </button>
+                    <div className="problem-content">
+                      <ProblemDisplay 
+                        onImageUpload={handleProblemImageUpload}
+                        lessonId={selectedLesson || undefined}
+                      />
+                      <button 
+                        className="end-session-btn" 
+                        onClick={() => {
+                          if (window.confirm('End your adventure with Pi? 🚀\n\nYour thinking will be saved!')) {
+                            handleDisconnect();
+                          }
+                        }}
+                      >
+                        End Adventure
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Floating mini toolbar */}
+              <div className="floating-toolbar">
+                {/* Drawing tools */}
+                <button 
+                  className={`tool-btn ${currentTool === 'pencil' ? 'active' : ''}`}
+                  onClick={() => handleToolChange('pencil')}
+                  title="Pencil"
+                >
+                  ✏️
+                </button>
+                <button 
+                  className={`tool-btn ${currentTool === 'eraser' ? 'active' : ''}`}
+                  onClick={() => handleToolChange('eraser')}
+                  title="Eraser"
+                >
+                  🧽
+                </button>
+                
+                <div className="divider" />
+                
+                {/* Colors */}
+                {colors.map((color) => (
+                  <button
+                    key={color.value}
+                    className={`color-btn ${currentColor === color.value ? 'active' : ''}`}
+                    style={{ backgroundColor: color.value }}
+                    onClick={() => setCurrentColor(color.value)}
+                    title={color.name}
+                  >
+                    {currentColor === color.value ? '✓' : ''}
+                  </button>
+                ))}
+                
+                <div className="divider" />
+                
+                {/* Clear */}
+                <button 
+                  className="tool-btn clear-btn"
+                  onClick={handleClear}
+                  title="Clear everything"
+                >
+                  🗑️
+                </button>
+              </div>
+
+              {/* Floating Pi indicator */}
+              <div className="floating-pi-indicator">
+                <div className="pi-avatar-small">
+                  <img src="/assets/pi-character.png" alt="Pi" />
+                </div>
+                <span className={`pi-status ${connected ? 'listening' : 'connecting'}`}>
+                  {connected ? (
+                    <VoiceInput />
+                  ) : (
+                    'Getting ready...'
+                  )}
+                </span>
+              </div>
+            </div>
 
             {/* Teacher panel */}
             <TeacherPanel 
@@ -240,6 +569,13 @@ function SimiliApp() {
         isOpen={showVoicePermission}
         onAllow={handleVoiceAllow}
         onDeny={handleVoiceDeny}
+      />
+
+      <LessonEntryPopup
+        isOpen={showLessonEntry}
+        lessonTitle={transitionLesson}
+        onStart={handleLessonEntryStart}
+        onCancel={handleLessonEntryCancel}
       />
     </div>
   );

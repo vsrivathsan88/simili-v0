@@ -1,36 +1,59 @@
 import React, { useState, useRef, useCallback } from 'react';
 import './UnifiedCanvas.scss';
-import MinimalToolbar from './MinimalToolbar';
 import GameFractionBar from './manipulatives/GameFractionBar';
 import DynamicNumberLine from './manipulatives/DynamicNumberLine';
-import OptimizedCanvas from './OptimizedCanvas';
+import AreaModel from './manipulatives/AreaModel';
+import ArrayGrid from './manipulatives/ArrayGrid';
+import FractionCircles from './manipulatives/FractionCircles';
+import VisualNumberLine from './manipulatives/VisualNumberLine';
+import EnhancedCanvas from './EnhancedCanvas';
 
 interface UnifiedCanvasProps {
   onCanvasChange?: (imageData: string) => void;
   problemImage?: string;
+  onSendToPi?: () => void;
+  currentTool?: 'pencil' | 'eraser' | 'text';
+  currentColor?: string;
+  onToolChange?: (tool: 'pencil' | 'eraser' | 'text') => void;
+  onColorChange?: (color: string) => void;
+  onClear?: () => void;
+  onAddManipulative?: (type: 'fraction-bar' | 'number-line' | 'area-model' | 'array-grid' | 'fraction-circles' | 'visual-number-line') => void;
 }
 
 interface Manipulative {
   id: string;
-  type: 'fraction-bar' | 'number-line';
+  type: 'fraction-bar' | 'number-line' | 'area-model' | 'array-grid' | 'fraction-circles' | 'visual-number-line';
   x: number;
   y: number;
   data: any;
 }
 
-const UnifiedCanvas: React.FC<UnifiedCanvasProps> = ({ onCanvasChange, problemImage }) => {
-  const [currentTool, setCurrentTool] = useState<'pencil' | 'eraser'>('pencil');
-  const [currentColor, setCurrentColor] = useState('#2a2a2a');
+const UnifiedCanvas: React.FC<UnifiedCanvasProps> = ({ 
+  onCanvasChange, 
+  problemImage, 
+  onSendToPi,
+  currentTool = 'pencil',
+  currentColor = '#2D3748',
+  onToolChange,
+  onColorChange,
+  onClear,
+  onAddManipulative
+}) => {
   const [manipulatives, setManipulatives] = useState<Manipulative[]>([]);
   const [isDragging, setIsDragging] = useState<string | null>(null);
+  const [textInput, setTextInput] = useState<{ x: number; y: number; text: string } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [clearTrigger, setClearTrigger] = useState(0);
 
   const handleClear = () => {
     setManipulatives([]);
-    // TODO: Clear canvas
+    // Clear the canvas by triggering a state change
+    setClearTrigger(prev => prev + 1);
+    if (onClear) onClear();
   };
 
-  const addManipulative = (type: 'fraction-bar' | 'number-line') => {
+  const addManipulative = (type: Manipulative['type']) => {
     const newManipulative: Manipulative = {
       id: `${type}-${Date.now()}`,
       type,
@@ -38,9 +61,18 @@ const UnifiedCanvas: React.FC<UnifiedCanvasProps> = ({ onCanvasChange, problemIm
       y: 100,
       data: type === 'fraction-bar' 
         ? { parts: 4, shaded: 1 }
-        : { min: 0, max: 10, marks: [] }
+        : type === 'number-line'
+        ? { min: 0, max: 10, marks: [] }
+        : type === 'area-model'
+        ? { rows: 3, cols: 4, selectedCells: Array(3).fill(null).map(() => Array(4).fill(false)) }
+        : type === 'array-grid'
+        ? { rows: 3, cols: 4, showGrouping: false }
+        : type === 'fraction-circles'
+        ? { parts: 4, shaded: 1 }
+        : { length: 10, markers: [] } // visual-number-line
     };
     setManipulatives(prev => [...prev, newManipulative]);
+    if (onAddManipulative) onAddManipulative(type);
   };
 
   const updateManipulative = (id: string, data: any) => {
@@ -78,18 +110,9 @@ const UnifiedCanvas: React.FC<UnifiedCanvasProps> = ({ onCanvasChange, problemIm
 
   return (
     <div className="unified-canvas" ref={containerRef}>
-      {/* Floating toolbar */}
-      <MinimalToolbar
-        currentTool={currentTool}
-        currentColor={currentColor}
-        onToolChange={setCurrentTool}
-        onColorChange={setCurrentColor}
-        onClear={handleClear}
-      />
-
-      {/* Main canvas - always in background */}
+      {/* Main canvas - full screen */}
       <div className="canvas-layer">
-        <OptimizedCanvas
+        <EnhancedCanvas
           width={800}
           height={600}
           onCanvasChange={onCanvasChange}
@@ -97,6 +120,7 @@ const UnifiedCanvas: React.FC<UnifiedCanvasProps> = ({ onCanvasChange, problemIm
           currentTool={currentTool}
           currentColor={currentColor}
           strokeWidth={currentTool === 'pencil' ? 2 : 20}
+          key={clearTrigger} // Force re-render to clear canvas
         />
       </div>
 
@@ -134,27 +158,33 @@ const UnifiedCanvas: React.FC<UnifiedCanvasProps> = ({ onCanvasChange, problemIm
                   onChange={(data) => updateManipulative(m.id, data)}
                 />
               )}
+              {m.type === 'area-model' && (
+                <AreaModel
+                  {...m.data}
+                  onChange={(data) => updateManipulative(m.id, data)}
+                />
+              )}
+              {m.type === 'array-grid' && (
+                <ArrayGrid
+                  {...m.data}
+                  onChange={(data) => updateManipulative(m.id, data)}
+                />
+              )}
+              {m.type === 'fraction-circles' && (
+                <FractionCircles
+                  {...m.data}
+                  onChange={(data) => updateManipulative(m.id, data)}
+                />
+              )}
+              {m.type === 'visual-number-line' && (
+                <VisualNumberLine
+                  {...m.data}
+                  onChange={(data) => updateManipulative(m.id, data)}
+                />
+              )}
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Quick add buttons */}
-      <div className="quick-add-tools">
-        <button 
-          onClick={() => addManipulative('fraction-bar')}
-          title="Add fraction bar"
-        >
-          <span className="icon">⬜</span>
-          <span className="label">Fraction Bar</span>
-        </button>
-        <button 
-          onClick={() => addManipulative('number-line')}
-          title="Add number line"
-        >
-          <span className="icon">↔️</span>
-          <span className="label">Number Line</span>
-        </button>
       </div>
     </div>
   );

@@ -1,62 +1,98 @@
-# Simili Math Tutor
+# Simili Math Tutor 🎓
 
-A reasoning visualization platform for elementary math education, powered by Gemini Live API.
+An AI-powered elementary math tutor that visualizes student reasoning in real-time using Google's Gemini Live API.
 
 ## Features
 
-- **Pi Tutor**: Friendly AI math tutor using Gemini Live's conversational AI
-- **Hand-drawn UI**: Warm, approachable interface using rough.js
-- **Reasoning Visualization**: Visual representation of student thinking journey
-- **Interactive Canvas**: Drawing tools and math manipulatives (coming soon)
-- **Session Recording**: Capture and replay problem-solving sessions
+### 🎯 Core Functionality
+- **Voice-based tutoring** with Pi, a friendly math tutor personality
+- **Real-time canvas** with drawing tools and text input
+- **Visual manipulatives** including fraction bars, number lines, area models, and array grids
+- **Automatic problem generation** based on Illustrative Mathematics curriculum
+- **Vision sync** - Pi can see both the problem and student work in real-time
 
-## Setup
+### 👩‍🏫 Teacher Tools
+- **Reasoning trace visualization** showing student thinking patterns
+- **Progress tracking** across multiple sessions
+- **Analytics dashboard** with insights into student understanding
+- **Misconception tracking** to identify areas needing support
 
-1. **Get a Gemini API Key**
-   - Visit [Google AI Studio](https://aistudio.google.com/apikey)
-   - Create a free API key
+### 🎨 Student Experience
+- **Game-like manipulatives** with intuitive controls
+- **Smooth drawing** with multiple colors and eraser
+- **Text tool** for writing numbers and labels
+- **Encouraging feedback** that celebrates mistakes as learning
 
-2. **Configure Environment**
-   - Copy `.env.example` to `.env`
-   - Add your API key: `REACT_APP_GEMINI_API_KEY=your_api_key_here`
+## Tech Stack
 
-3. **Install Dependencies**
+- **Frontend**: React + TypeScript
+- **AI**: Google Gemini Live API (multimodal with voice + vision)
+- **Styling**: SCSS with custom design system
+- **Drawing**: Canvas API with requestAnimationFrame optimization
+- **State**: React hooks with localStorage persistence
+
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies:
    ```bash
    npm install
    ```
 
-4. **Start Development Server**
+3. Create a `.env` file with your Gemini API key:
+   ```
+   REACT_APP_GEMINI_API_KEY=your_api_key_here
+   ```
+
+4. Start the development server:
    ```bash
    npm start
    ```
 
 ## Architecture
 
-Built on top of Google's Gemini Live API Web Console with:
-- React + TypeScript
-- rough.js for hand-drawn UI components
-- Gemini Live 2.0 for conversational AI
-- Custom tool functions for math tutoring
+### Key Components
 
-## Development Status
+- **App.tsx** - Main application with Gemini Live connection
+- **UnifiedCanvas** - Drawing surface with manipulative support
+- **EnhancedCanvas** - Canvas implementation with text support
+- **ProblemDisplay** - Shows math problems with automatic generation
+- **TeacherPanel** - Collapsible panel with reasoning trace and analytics
+- **StudentProgress** - Dashboard showing mastery and practice areas
 
-### Completed ✓
-- Gemini Live integration
-- Pi tutor personality configuration
-- Hand-drawn UI components (SketchyButton, ReasoningBubble)
-- Math tool function implementations
+### Manipulatives
 
-### In Progress
-- tldraw canvas integration
-- Fraction manipulatives (Pizza, FractionBar)
-- Reasoning map visualization
-- Canvas → Gemini vision sync
+- **GameFractionBar** - Interactive fraction visualization
+- **DynamicNumberLine** - Adjustable number line with marking
+- **AreaModel** - Grid for understanding fractions as areas
+- **ArrayGrid** - Visualization for multiplication concepts
 
-## Tool Functions
+### AI Integration
 
-Pi can call these functions during tutoring:
-- `mark_reasoning_step`: Record student's reasoning
-- `flag_misconception`: Identify learning opportunities
-- `suggest_hint`: Provide scaffolded support
-- `celebrate_exploration`: Acknowledge productive struggle
-- `annotate_canvas`: Draw visual hints
+- **Pi Tutor** - Socratic teaching personality with timing awareness
+- **Tool Functions** - Captures reasoning steps and misconceptions
+- **Vision Sync** - Sends problem and canvas images to Gemini
+- **Audio Streaming** - PCM 16kHz format with Web Audio API
+
+## Design Philosophy
+
+- **Mistake-friendly** - Rough.js aesthetic makes it feel like scratch paper
+- **Visual-first** - Manipulatives and drawing before abstract symbols
+- **Patient pacing** - Pi waits 8+ seconds after questions
+- **Progress visibility** - Students see their growth over time
+
+## Future Enhancements
+
+- Additional manipulative types (base-10 blocks, pattern blocks)
+- Collaborative features for peer learning
+- Parent dashboard with progress reports
+- More grade levels and math topics
+- Offline mode with local AI
+
+## License
+
+MIT
+
+---
+
+Built with ❤️ to make math learning more visual and engaging.

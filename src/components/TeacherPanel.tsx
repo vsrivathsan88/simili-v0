@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './TeacherPanel.scss';
 import ReasoningTrace from './ReasoningTrace';
+import StudentProgress from './StudentProgress';
 
 interface TeacherPanelProps {
   isOpen: boolean;
@@ -9,7 +10,7 @@ interface TeacherPanelProps {
 }
 
 const TeacherPanel: React.FC<TeacherPanelProps> = ({ isOpen, onToggle }) => {
-  const [activeTab, setActiveTab] = useState<'reasoning' | 'analytics' | 'settings'>('reasoning');
+  const [activeTab, setActiveTab] = useState<'reasoning' | 'analytics' | 'progress' | 'settings'>('reasoning');
 
   return (
     <>
@@ -50,6 +51,12 @@ const TeacherPanel: React.FC<TeacherPanelProps> = ({ isOpen, onToggle }) => {
                 onClick={() => setActiveTab('analytics')}
               >
                 Analytics
+              </button>
+              <button
+                className={`tab ${activeTab === 'progress' ? 'active' : ''}`}
+                onClick={() => setActiveTab('progress')}
+              >
+                Progress
               </button>
               <button
                 className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
@@ -93,6 +100,12 @@ const TeacherPanel: React.FC<TeacherPanelProps> = ({ isOpen, onToggle }) => {
                       <li>Good use of visual manipulatives</li>
                     </ul>
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'progress' && (
+                <div className="progress-section">
+                  <StudentProgress />
                 </div>
               )}
 

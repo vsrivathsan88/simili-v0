@@ -1,4 +1,5 @@
 @import '../config/variables';
+@import '../styles/animations';
 
 .voice-permission-backdrop {
   position: fixed;
@@ -6,7 +7,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -14,67 +15,184 @@
 }
 
 .voice-permission-modal {
-  background: white;
-  border-radius: 24px;
-  padding: 40px;
-  max-width: 400px;
+  background: linear-gradient(135deg, #FFFEF7 0%, #F8FAFC 100%);
+  border-radius: 32px;
+  padding: 48px 40px;
+  max-width: 480px;
   width: 90%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
+  border: 4px solid #FF6B6B;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '✨';
+    position: absolute;
+    top: 20px;
+    left: 30px;
+    font-size: 20px;
+    opacity: 0.6;
+    animation: sparkleRotate 3s ease-in-out infinite;
+  }
+
+  &::after {
+    content: '🌟';
+    position: absolute;
+    bottom: 20px;
+    right: 30px;
+    font-size: 18px;
+    opacity: 0.5;
+    animation: sparkleRotate 4s ease-in-out infinite reverse;
+  }
 
   .modal-content {
     text-align: center;
+    position: relative;
 
-    .modal-icon {
-      font-size: 64px;
-      margin-bottom: 20px;
-      animation: bounce 2s infinite;
+    .pi-character-large {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      position: relative;
+
+      .pi-img {
+        width: 120px;
+        height: 120px;
+        object-fit: contain;
+        filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15));
+        animation: gentleFloat 4s ease-in-out infinite;
+        transition: transform 0.3s ease;
+
+        &:hover {
+          transform: scale(1.1) rotate(5deg);
+        }
+      }
+
+      .pi-sparkles {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        font-size: 32px;
+        animation: sparkleRotate 2s ease-in-out infinite;
+        filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.8));
+      }
     }
 
-    h2 {
-      font-size: 28px;
-      margin: 0 0 16px;
-      font-family: $hand-drawn-font;
-      color: $primary-color;
-    }
+    .pi-speech-bubble-large {
+      background: white;
+      border-radius: 32px;
+      padding: 24px 32px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      position: relative;
+      margin: 0 auto 32px;
+      max-width: 280px;
+      border: 3px solid #4ECDC4;
+      animation: gentlePulse 4s ease-in-out infinite;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border: 12px solid transparent;
+        border-bottom-color: #4ECDC4;
+      }
 
-    p {
-      font-size: 16px;
-      color: $text-primary;
-      margin: 0 0 12px;
-      line-height: 1.5;
+      &::after {
+        content: '';
+        position: absolute;
+        top: -9px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border: 9px solid transparent;
+        border-bottom-color: white;
+      }
 
-      &.privacy-note {
-        font-size: 14px;
-        color: $text-secondary;
-        margin-top: 20px;
+      p {
+        margin: 0;
+        font-size: 24px;
+        color: $text-primary;
+        font-weight: 700;
+        font-family: $hand-drawn-font;
       }
     }
 
     .button-group {
-      margin-top: 32px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 16px;
       align-items: center;
 
-      .text-button {
+      .sketchy-button {
+        position: relative;
+        overflow: hidden;
+
+        .btn-emoji {
+          animation: rocketBounce 2s ease-in-out infinite;
+        }
+
+        .btn-sparkle {
+          animation: sparkleRotate 1.5s ease-in-out infinite;
+        }
+
+        &::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+          animation: magicShimmer 3s ease-in-out infinite;
+        }
+      }
+
+      .not-now-button {
         background: none;
         border: none;
         color: $text-secondary;
-        font-size: 14px;
+        font-size: 16px;
         cursor: pointer;
-        text-decoration: underline;
-        padding: 8px;
+        padding: 12px 20px;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        font-family: $hand-drawn-font;
 
         &:hover {
           color: $text-primary;
+          background: rgba(0, 0, 0, 0.05);
+          transform: scale(1.05);
         }
       }
     }
   }
 }
 
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+// Mobile responsiveness
+@media (max-width: 480px) {
+  .voice-permission-modal {
+    padding: 32px 24px;
+    max-width: 340px;
+
+    .modal-content {
+      .pi-character-large .pi-img {
+        width: 100px;
+        height: 100px;
+      }
+
+      .pi-speech-bubble-large {
+        padding: 20px 24px;
+        
+        p {
+          font-size: 20px;
+        }
+      }
+    }
+  }
 }

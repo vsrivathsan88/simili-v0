@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import './MinimalToolbar.scss';
 
 interface MinimalToolbarProps {
-  currentTool: 'pencil' | 'eraser';
+  currentTool: 'pencil' | 'eraser' | 'text';
   currentColor: string;
-  onToolChange: (tool: 'pencil' | 'eraser') => void;
+  onToolChange: (tool: 'pencil' | 'eraser' | 'text') => void;
   onColorChange: (color: string) => void;
   onClear: () => void;
+  onSendToPi?: () => void;
 }
 
 const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
@@ -14,61 +15,72 @@ const MinimalToolbar: React.FC<MinimalToolbarProps> = ({
   currentColor,
   onToolChange,
   onColorChange,
-  onClear
+  onClear,
+  onSendToPi
 }) => {
-  const [showColors, setShowColors] = useState(false);
-  
-  const colors = ['#2a2a2a', '#ff4444', '#4444ff', '#44aa44']; // Black, Red, Blue, Green
+  const colors = [
+    { value: '#2D3748', name: 'Black', emoji: '🖤' },
+    { value: '#E53E3E', name: 'Red', emoji: '❤️' },
+    { value: '#3182CE', name: 'Blue', emoji: '💙' },
+    { value: '#38A169', name: 'Green', emoji: '💚' }
+  ];
 
   return (
     <div className="minimal-toolbar">
-      <button
-        className={`tool-btn ${currentTool === 'pencil' ? 'active' : ''}`}
-        onClick={() => {
-          onToolChange('pencil');
-          setShowColors(true);
-        }}
-        title="Pencil"
-      >
-        ✏️
-      </button>
+      {/* Drawing Tools */}
+      <div className="tool-section">
+        <button
+          className={`tool-btn ${currentTool === 'pencil' ? 'active' : ''}`}
+          onClick={() => onToolChange('pencil')}
+          title="Pencil"
+        >
+          ✏️
+        </button>
+        
+        <button
+          className={`tool-btn ${currentTool === 'eraser' ? 'active' : ''}`}
+          onClick={() => onToolChange('eraser')}
+          title="Eraser"
+        >
+          🧽
+        </button>
+      </div>
+
+      {/* Color Palette - Always Visible */}
+      <div className="color-section">
+        {colors.map(color => (
+          <button
+            key={color.value}
+            className={`color-btn ${currentColor === color.value ? 'active' : ''}`}
+            style={{ backgroundColor: color.value }}
+            onClick={() => onColorChange(color.value)}
+            title={color.name}
+          >
+            {currentColor === color.value && <span className="color-check">✓</span>}
+          </button>
+        ))}
+      </div>
       
-      {showColors && currentTool === 'pencil' && (
-        <div className="color-picker">
-          {colors.map(color => (
-            <button
-              key={color}
-              className={`color-btn ${currentColor === color ? 'active' : ''}`}
-              style={{ backgroundColor: color }}
-              onClick={() => {
-                onColorChange(color);
-                setShowColors(false);
-              }}
-            />
-          ))}
-        </div>
-      )}
-      
-      <button
-        className={`tool-btn ${currentTool === 'eraser' ? 'active' : ''}`}
-        onClick={() => {
-          onToolChange('eraser');
-          setShowColors(false);
-        }}
-        title="Eraser"
-      >
-        🧹
-      </button>
-      
-      <div className="toolbar-divider" />
-      
-      <button
-        className="tool-btn clear-btn"
-        onClick={onClear}
-        title="Clear all"
-      >
-        🗑️
-      </button>
+      {/* Action Buttons */}
+      <div className="action-section">
+        {onSendToPi && (
+          <button
+            className="tool-btn send-btn"
+            onClick={onSendToPi}
+            title="Show Pi my work"
+          >
+            👁️ Pi
+          </button>
+        )}
+        
+        <button
+          className="tool-btn clear-btn"
+          onClick={onClear}
+          title="Clear canvas"
+        >
+          🗑️
+        </button>
+      </div>
     </div>
   );
 };
