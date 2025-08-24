@@ -31,12 +31,14 @@ const VoicePermissionModal: React.FC<VoicePermissionModalProps> = ({
             transition={{ type: "spring", duration: 0.5 }}
           >
             <div className="modal-content">
-              <div className="modal-icon">🎤</div>
-              <h2>Let's talk! 💬</h2>
-              <p>Pi needs to hear you to help with math problems.</p>
-              <p className="privacy-note">
-                🔒 Your voice stays private and safe
-              </p>
+              <div className="pi-character-large">
+                <img src="/assets/pi-character.png" alt="Pi asking for permission" className="pi-img" />
+                <div className="pi-sparkles">✨</div>
+              </div>
+              
+              <div className="pi-speech-bubble-large">
+                <p>🎤 Can I hear you?</p>
+              </div>
               
               <div className="button-group">
                 <SketchyButton 
@@ -44,14 +46,16 @@ const VoicePermissionModal: React.FC<VoicePermissionModalProps> = ({
                   size="large"
                   variant="primary"
                 >
-                  Yes, let's talk!
+                  <span className="btn-emoji">🚀</span>
+                  Yes!
+                  <span className="btn-sparkle">✨</span>
                 </SketchyButton>
                 
                 <button 
-                  className="text-button"
+                  className="not-now-button"
                   onClick={onDeny}
                 >
-                  Maybe later
+                  Not now
                 </button>
               </div>
             </div>

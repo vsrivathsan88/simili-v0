@@ -118,6 +118,7 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
     redrawCanvas();
   }, [redrawCanvas]);
 
+
   const drawBackground = (ctx: CanvasRenderingContext2D) => {
     // Fill with paper color
     ctx.fillStyle = '#FFFEF7';

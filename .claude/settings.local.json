@@ -5,7 +5,8 @@
       "Bash(cp:*)",
       "WebFetch(domain:ai.google.dev)",
       "Bash(npx tsc:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

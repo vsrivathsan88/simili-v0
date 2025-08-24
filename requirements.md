@@ -19,11 +19,21 @@ Simili is a reasoning visualization platform that makes student mathematical thi
 **What Gemini Provides:** All voice interaction, conversation flow, multimodal understanding, and natural tutoring behavior.
 
 ### 1.3 Design Philosophy
-Using rough.js and hand-drawn aesthetics to:
-- Reduce math anxiety (feels like sketching, not testing)
-- Encourage experimentation (mistakes look intentional)
-- Match how kids actually work (messy is okay)
-- Create warmth and approachability
+**Mistake-Friendly Math Environment**
+Using rough.js and modern kid-centric design to:
+- **Reduce math anxiety**: Sketchy UI feels like doodling, not formal testing
+- **Celebrate mistakes**: Errors trigger growth animations, not red X's
+- **Match natural learning**: Messy exploration is explicitly encouraged
+- **Create warmth**: Bright colors, emojis, and playful interactions
+- **Build confidence**: "Try again!" not "Wrong!" messaging
+- **Feel modern**: Gradients, rounded corners, micro-interactions kids expect from apps
+
+**Core Principles:**
+1. **No harsh reds**: Orange/coral for "let's try another way" 🤷‍♀️
+2. **Emoji integration**: Every feedback state has personality 🎉
+3. **Growth mindset language**: "Interesting thinking!" vs "Incorrect"
+4. **Energy over calm**: Kids want excitement, not sterile minimalism
+5. **Familiar patterns**: Streaks, badges, progress bars from games they love
 
 ### 1.4 Success Criteria
 - Students engage in mathematical discourse for >45 seconds per problem
@@ -597,45 +607,187 @@ const designSystem = {
     playful: 2.5    // Very sketchy
   },
   
-  // Color palette (warm, friendly)
+  // Color palette (vibrant, kid-friendly like modern apps)
   colors: {
     paper: '#FFFEF7',        // Warm white
     ink: '#2D3748',          // Soft black
-    primary: '#5B21B6',      // Purple
-    success: '#059669',      // Green
-    warning: '#D97706',      // Amber
-    error: '#DC2626',        // Red (used sparingly)
+    primary: '#FF6B6B',      // Coral (warm, energetic)
+    secondary: '#4ECDC4',    // Teal (fresh, friendly)
+    success: '#32D74B',      // iOS Green (celebrate-y)
+    warning: '#FF9500',      // iOS Orange (encouraging)
+    error: '#FF6B6B',        // Coral (mistake-friendly, not harsh red)
     
-    // Pastel fills for bubbles
+    // Topic-specific accent colors for variety
+    accents: {
+      fractions: '#FF6B6B',  // Coral
+      geometry: '#FF9500',   // Orange  
+      numbers: '#4ECDC4',    // Teal
+      patterns: '#A78BFA'    // Purple
+    },
+    
+    // Gradient backgrounds (kids love depth)
+    gradients: {
+      primary: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%)',
+      secondary: 'linear-gradient(135deg, #4ECDC4 0%, #6EE7DB 100%)',
+      success: 'linear-gradient(135deg, #32D74B 0%, #5DE26B 100%)'
+    },
+    
+    // Pastel fills for bubbles (brighter, more energy)
     fills: {
       correct: '#D1FAE5',    // Light green
-      partial: '#FEF3C7',    // Light yellow
-      incorrect: '#FED7AA',  // Light orange
-      exploring: '#E9D5FF'   // Light purple
+      partial: '#FFF3CD',    // Light yellow (warmer)
+      incorrect: '#FFE4E1',  // Light coral (not orange - friendlier)
+      exploring: '#E0E7FF'   // Light blue (curiosity color)
     }
   },
   
-  // Animation presets
+  // Typography (modern, kid-friendly fonts)
+  typography: {
+    // Replace Inter with rounder, friendlier options
+    body: '"Fredoka", "Quicksand", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    handwritten: '"Fredoka", "Nunito", "Poppins", -apple-system, sans-serif',
+    
+    // Font weights that feel approachable
+    weights: {
+      normal: 400,
+      medium: 500,  // Avoid heavy weights - too serious
+      bold: 600     // Not 700+ which feels "school-y"
+    },
+    
+    // Emoji integration guidelines
+    emojis: {
+      success: '🎉 ✨ 🌟 🎊',
+      thinking: '🤔 💭 🧠',
+      progress: '🚀 ⭐ 🎯',
+      mistake: '🤷‍♀️ 💡 🌱', // Growth mindset emojis
+      celebration: '🎉 🎊 ✨ 🌟 🎈'
+    }
+  },
+
+  // Animation presets (more energetic, kid-friendly)
   animations: {
     drawIn: {
       strokeDasharray: 1000,
       strokeDashoffset: [1000, 0],
-      duration: 1000
+      duration: 1000,
+      easing: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)' // Bounce
     },
     pulse: {
-      scale: [1, 1.05, 1],
+      scale: [1, 1.08, 1], // Slightly more dramatic
       duration: 500
     },
     celebrate: {
-      rotate: [-5, 5, -5],
-      scale: [1, 1.1, 1],
-      duration: 300
+      // More energetic celebration
+      rotate: [-8, 8, -5, 5, 0],
+      scale: [1, 1.15, 1.05, 1.1, 1],
+      duration: 600
+    },
+    // New: particle celebration for big wins
+    confetti: {
+      particles: 20,
+      colors: ['#FF6B6B', '#4ECDC4', '#32D74B', '#FF9500'],
+      duration: 2000,
+      spread: 180
+    },
+    // New: gentle wiggle for "let's try again" 
+    encourageRetry: {
+      rotate: [-2, 2, -1, 1, 0],
+      duration: 400,
+      easing: 'ease-out'
+    }
+  },
+
+  // Modern interaction patterns kids expect from apps
+  interactions: {
+    // Gestures (mobile-first)
+    gestures: {
+      swipeToNext: true,
+      pinchToZoom: true,
+      tapToSelect: true,
+      longPressForHints: true
+    },
+    
+    // Gamification elements
+    gamification: {
+      streakCounters: true,
+      achievementBadges: true,
+      progressBars: 'juice-fill', // Fills like liquid
+      levelProgression: true,
+      collectibles: 'math-gems'
+    },
+    
+    // Feedback patterns
+    feedback: {
+      haptics: true,           // iPhone-style vibration
+      soundEffects: 'minimal', // Soft pops and chimes
+      microInteractions: true, // Buttons that squish when pressed
+      loadingStates: 'playful' // Dancing dots, not spinners
+    },
+    
+    // Modern app features kids expect
+    modernFeatures: {
+      darkMode: true,          // Surprisingly popular with 10+
+      avatarSystem: 'geometric', // Simple character customization  
+      onboardingTooltips: true,
+      swipeNavigation: true,
+      pullToRefresh: true
     }
   }
 }
 ```
 
-### 6.2 Component Examples
+### 6.2 Mistake-Friendly UI Guidelines
+
+```typescript
+// UI language that celebrates learning over correctness
+const uiCopy = {
+  errorStates: {
+    // Instead of "Wrong!" or "Incorrect"
+    encouraging: [
+      "Hmm, let's think about this together! 🤔",
+      "Interesting approach! What if we tried...? 💡",
+      "Almost there! One more adjustment? 🌱", 
+      "I love how you're thinking! Let's explore this more 🚀"
+    ]
+  },
+  
+  progressMessages: {
+    // Growth mindset throughout
+    exploring: "You're being such a math detective! 🔍",
+    struggling: "This is your brain growing stronger! 💪",
+    breakthrough: "YES! You figured that out! 🎉",
+    reflection: "Tell me more about your thinking... 🤓"
+  },
+  
+  // Replace technical terms with kid language
+  mathLanguage: {
+    'algorithm': 'your method',
+    'solution': 'answer',
+    'incorrect': 'not quite yet',
+    'revision': 'another try',
+    'strategy': 'your way of solving it'
+  }
+}
+
+// Visual error handling - no harsh red warnings
+const mistakeFriendlyUI = {
+  errorColor: '#FF9500',    // Warm orange, not red
+  errorIcon: '🤷‍♀️',          // Shrug, not X
+  errorAnimation: 'gentleBounce', // Not harsh shake
+  followUpAction: 'suggestHint',  // Always offer help
+  celebrateAttempt: true,    // Acknowledge effort even if wrong
+  
+  // Progressive disclosure - don't overwhelm
+  hintLevels: [
+    'encouragement',   // "You're thinking hard!"
+    'question',        // "What if we looked at this part?"
+    'visualHint',      // Highlight relevant area
+    'workedExample'    // Show similar problem
+  ]
+}
+```
+
+### 6.3 Component Examples
 
 ```typescript
 // Hand-drawn button

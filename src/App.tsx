@@ -9,6 +9,7 @@ import ProblemDisplay from './components/ProblemDisplay';
 import TeacherPanel from './components/TeacherPanel';
 import VoicePermissionModal from './components/VoicePermissionModal';
 import LessonHomepage from './components/LessonHomepage';
+import LessonTransition from './components/LessonTransition';
 import { ToolCallFeedback } from './components/ToolCallFeedback';
 import { handleToolCall } from './lib/toolImplementations';
 import { useConnectionRetry } from './hooks/useConnectionRetry';
@@ -28,6 +29,8 @@ function SimiliApp() {
   const [showTeacherPanel, setShowTeacherPanel] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
   const [isManualDisconnect, setIsManualDisconnect] = useState(false);
+  const [showTransition, setShowTransition] = useState(false);
+  const [transitionLesson, setTransitionLesson] = useState<string>('');
 
   useEffect(() => {
     // Configure Pi tutor with Gemini Live model
@@ -131,8 +134,71 @@ function SimiliApp() {
     2000 // initial delay
   );
 
+  const checkMicrophonePermission = async (): Promise<boolean> => {
+    try {
+      const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+      return result.state === 'granted';
+    } catch (error) {
+      // Fallback for browsers that don't support permissions API
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(track => track.stop());
+        return true;
+      } catch {
+        return false;
+      }
+    }
+  };
+
   const handleConnect = async () => {
-    setShowVoicePermission(true);
+    console.log('handleConnect called, current connected state:', connected);
+    
+    // If already connected, no need to reconnect
+    if (connected) {
+      console.log('Already connected, skipping connection attempt');
+      return;
+    }
+    
+    console.log('Checking microphone permission...');
+    try {
+      const hasPermission = await checkMicrophonePermission();
+      console.log('Permission check result:', hasPermission);
+      
+      if (hasPermission) {
+        // Permission already granted, connect directly
+        try {
+          console.log('Permission already granted, attempting connection...');
+          
+          // Add a small delay to ensure any previous connection is fully closed
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await connectWithRetry();
+          console.log('Connection initiated - session will remain active until you click End Session');
+        } catch (error) {
+          console.error('Connection failed:', error);
+          if ((error as Error).message?.includes('CLOSING') || (error as Error).message?.includes('CLOSED')) {
+            console.log('WebSocket was closing, retrying in 2 seconds...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            try {
+              await connectWithRetry();
+              console.log('Retry connection successful');
+            } catch (retryError) {
+              alert('Failed to connect after multiple attempts. Please check your API key and internet connection.');
+              console.error('Retry connection error:', retryError);
+            }
+          } else {
+            alert('Failed to connect. Please check your API key and internet connection.');
+          }
+        }
+      } else {
+        // Need to request permission
+        console.log('Permission not granted, showing permission modal...');
+        setShowVoicePermission(true);
+      }
+    } catch (error) {
+      console.error('Error in handleConnect:', error);
+      // Fallback to showing permission modal
+      setShowVoicePermission(true);
+    }
   };
 
   const handleVoiceAllow = async () => {
@@ -151,7 +217,7 @@ function SimiliApp() {
     setShowVoicePermission(false);
   };
 
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
     console.log('Manual disconnect requested');
     setIsManualDisconnect(true); // Prevent auto-reconnection
     reset(); // Reset retry logic
@@ -161,8 +227,14 @@ function SimiliApp() {
       console.log(`Total reasoning steps: ${session.reasoningSteps.length}`);
       console.log(`Total misconceptions: ${session.misconceptions.length}`);
     }
+    
+    // Disconnect and wait a moment for cleanup
     disconnect();
+    console.log('Disconnecting... waiting for cleanup');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     setSelectedLesson(null); // Return to lesson selection
+    console.log('Returned to lesson selection');
   };
 
   const handleCanvasChange = (imageData: string) => {
@@ -206,11 +278,20 @@ function SimiliApp() {
       const canvasBase64 = canvasImg.split(',')[1];
       
       if (!problemBase64 || !canvasBase64) {
-        console.log('Vision API: Invalid image data');
+        console.log('Vision API: Invalid image data', {
+          hasProblemData: !!problemBase64,
+          hasCanvasData: !!canvasBase64,
+          problemImgStart: problemImg?.substring(0, 50),
+          canvasImgStart: canvasImg?.substring(0, 50)
+        });
         return;
       }
       
       console.log('Vision API: Sending problem and canvas images to Pi...');
+      console.log('Problem image size:', problemBase64.length, 'bytes');
+      console.log('Canvas image size:', canvasBase64.length, 'bytes');
+      console.log('Problem image type:', problemImg.split(',')[0]);
+      console.log('Canvas image type:', canvasImg.split(',')[0]);
       
       // Send both images with clear labels in one call
       client.sendRealtimeInput([
@@ -226,11 +307,11 @@ function SimiliApp() {
       
       console.log('Vision API: Successfully sent both images to Pi');
       
-      // Also send a brief context message to help Pi understand
+      // Also send a clear context message to help Pi understand
       setTimeout(() => {
         if (client && connected) {
           client.send({
-            text: "I just sent you two images: first is the math problem, second is what I've drawn on my canvas. Can you see my work?"
+            text: "Hi Pi! I just sent you two images: (1) The math problem I'm working on, and (2) My current work on the canvas. Please look at both images and help guide me through this problem. Can you see what I've drawn so far?"
           });
         }
       }, 200);
@@ -241,9 +322,40 @@ function SimiliApp() {
   };
 
   const handleLessonSelect = (lessonId: string) => {
-    setSelectedLesson(lessonId);
-    setIsManualDisconnect(false); // Reset manual disconnect flag
-    // Auto-start connection for any lesson
+    console.log('Lesson selected:', lessonId);
+    const lessons = [
+      { id: 'intro-fractions', title: 'Parts & Wholes' },
+      { id: 'equivalent-fractions', title: 'Same Amount, Different Ways' },
+      { id: 'comparing-fractions', title: 'Bigger or Smaller?' },
+      { id: 'fractions-number-line', title: 'Finding Your Spot' },
+      { id: 'unit-fractions', title: 'Special One-Pieces' },
+      { id: 'fraction-word-problems', title: 'Real-Life Stories' }
+    ];
+    
+    const lesson = lessons.find(l => l.id === lessonId);
+    console.log('Found lesson:', lesson);
+    setTransitionLesson(lesson?.title || 'Math Adventures');
+    setShowTransition(true);
+    setIsManualDisconnect(false);
+    console.log('Starting transition for:', lesson?.title);
+  };
+
+  const handleTransitionComplete = () => {
+    console.log('Transition completed, starting connection process...');
+    setShowTransition(false);
+    // Find the lesson ID from the title to set selected lesson properly
+    const lessons = [
+      { id: 'intro-fractions', title: 'Parts & Wholes' },
+      { id: 'equivalent-fractions', title: 'Same Amount, Different Ways' },
+      { id: 'comparing-fractions', title: 'Bigger or Smaller?' },
+      { id: 'fractions-number-line', title: 'Finding Your Spot' },
+      { id: 'unit-fractions', title: 'Special One-Pieces' },
+      { id: 'fraction-word-problems', title: 'Real-Life Stories' }
+    ];
+    const lesson = lessons.find(l => l.title === transitionLesson);
+    setSelectedLesson(lesson?.id || 'intro-fractions');
+    // Start connection after transition
+    console.log('About to call handleConnect...');
     handleConnect();
   };
 
@@ -260,17 +372,62 @@ function SimiliApp() {
     <div className="simili-app" style={{ backgroundColor: designSystem.colors.paper }}>
       {connected && <ToolCallFeedback />}
       <header className="simili-header">
-        <h1 className="simili-title">📚 Math with Pi</h1>
+        <h1 className="simili-title">Simili</h1>
       </header>
 
       <main className="simili-main">
-        {!selectedLesson ? (
+        {!selectedLesson && !showTransition ? (
           <LessonHomepage onLessonSelect={handleLessonSelect} />
+        ) : showTransition ? (
+          <LessonTransition 
+            isActive={showTransition}
+            lessonTitle={transitionLesson}
+            onComplete={handleTransitionComplete}
+          />
         ) : (
           <div className="simili-workspace">
             <div className="workspace-simple">
-              {/* Problem Image - Fixed 30% width */}
-              <div className="problem-section">
+              {/* Full-width canvas */}
+              <div className="canvas-section">
+                <UnifiedCanvas 
+                  onCanvasChange={handleCanvasChange}
+                  problemImage={problemImage}
+                  onSendToPi={handleManualSendToPi}
+                />
+              </div>
+
+              {/* Bottom manipulatives toolbar */}
+              <div className="manipulatives-toolbar">
+                <div className="manipulative-item">
+                  <div className="manipulative-icon">🍕</div>
+                  <span>Pizza Fractions</span>
+                </div>
+                <div className="manipulative-item">
+                  <div className="manipulative-icon">📊</div>
+                  <span>Bar Chart</span>
+                </div>
+                <div className="manipulative-item">
+                  <div className="manipulative-icon">📏</div>
+                  <span>Number Line</span>
+                </div>
+                <div className="manipulative-item">
+                  <div className="manipulative-icon">⭕</div>
+                  <span>Circles</span>
+                </div>
+                <div className="manipulative-item">
+                  <div className="manipulative-icon">🧮</div>
+                  <span>Counters</span>
+                </div>
+                <div className="manipulative-item">
+                  <div className="manipulative-icon">📐</div>
+                  <span>Shapes</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Floating problem card */}
+            <div className="problem-card">
+              <div className="problem-content">
                 <ProblemDisplay 
                   onImageUpload={handleProblemImageUpload}
                   lessonId={selectedLesson || undefined}
@@ -284,15 +441,11 @@ function SimiliApp() {
                   )}
                 </div>
               </div>
+            </div>
 
-              {/* Student Canvas - Takes remaining space */}
-              <div className="canvas-section">
-                <UnifiedCanvas 
-                  onCanvasChange={handleCanvasChange}
-                  problemImage={problemImage}
-                  onSendToPi={handleManualSendToPi}
-                />
-              </div>
+            {/* Floating Pi helper */}
+            <div className="pi-helper">
+              <img src="/assets/pi-character.png" alt="Pi helper" />
             </div>
 
             {/* Floating end button with confirmation */}

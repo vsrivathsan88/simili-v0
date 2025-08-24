@@ -25,17 +25,28 @@ interface Manipulative {
 
 const UnifiedCanvas: React.FC<UnifiedCanvasProps> = ({ onCanvasChange, problemImage, onSendToPi }) => {
   const [currentTool, setCurrentTool] = useState<'pencil' | 'eraser' | 'text'>('pencil');
-  const [currentColor, setCurrentColor] = useState('#2a2a2a');
+  const [currentColor, setCurrentColor] = useState('#2D3748'); // Default dark color
   const [manipulatives, setManipulatives] = useState<Manipulative[]>([]);
   const [isDragging, setIsDragging] = useState<string | null>(null);
   const [textInput, setTextInput] = useState<{ x: number; y: number; text: string } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Kid-friendly color palette
+  const colors = [
+    { name: 'Dark Blue', value: '#2D3748', emoji: '🖤' },
+    { name: 'Red', value: '#E53E3E', emoji: '❤️' },
+    { name: 'Blue', value: '#3182CE', emoji: '💙' },
+    { name: 'Green', value: '#38A169', emoji: '💚' }
+  ];
+
   const handleClear = () => {
     setManipulatives([]);
-    // TODO: Clear canvas
+    // Clear the canvas by triggering a state change
+    setClearTrigger(prev => prev + 1);
   };
+
+  const [clearTrigger, setClearTrigger] = useState(0);
 
   const handleToolChange = (tool: 'pencil' | 'eraser' | 'text') => {
     setCurrentTool(tool);
@@ -117,6 +128,7 @@ const UnifiedCanvas: React.FC<UnifiedCanvasProps> = ({ onCanvasChange, problemIm
           currentTool={currentTool}
           currentColor={currentColor}
           strokeWidth={currentTool === 'pencil' ? 2 : 20}
+          key={clearTrigger} // Force re-render to clear canvas
         />
       </div>
 

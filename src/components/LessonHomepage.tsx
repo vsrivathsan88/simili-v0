@@ -20,125 +20,154 @@ const LessonHomepage: React.FC<LessonHomepageProps> = ({ onLessonSelect }) => {
   const lessons: Lesson[] = [
     {
       id: 'intro-fractions',
-      title: 'Introduction to Fractions',
-      subtitle: 'Understanding parts of a whole',
+      title: 'Parts & Wholes',
+      subtitle: 'Share pizza like a pro! 🍕',
       grade: 'Grade 3',
       unit: 'Unit 5',
       image: '🍕',
       active: true,
-      description: 'Learn what fractions are using pizza, pies, and other fun examples!'
+      description: 'Pizza time! Learn by playing with yummy treats!'
     },
     {
       id: 'equivalent-fractions',
-      title: 'Equivalent Fractions',
-      subtitle: 'Different names, same amount',
+      title: 'Same Amount, Different Ways',
+      subtitle: 'Cool magic tricks! ✨',
       grade: 'Grade 3',
       unit: 'Unit 5',
       image: '🍰',
       active: false,
-      description: 'Discover how 1/2 equals 2/4 and more!'
+      description: '1/2 = 2/4? Mind = blown! 🤯'
     },
     {
       id: 'comparing-fractions',
-      title: 'Comparing Fractions',
-      subtitle: 'Which is bigger?',
+      title: 'Bigger or Smaller?',
+      subtitle: 'Be a detective! 🕵️',
       grade: 'Grade 3',
       unit: 'Unit 5',
       image: '🍪',
       active: false,
-      description: 'Learn to compare fractions using visual models'
+      description: 'Which piece wins? You decide!'
     },
     {
       id: 'fractions-number-line',
-      title: 'Fractions on a Number Line',
-      subtitle: 'Finding fraction positions',
+      title: 'Finding Your Spot',
+      subtitle: 'Treasure hunt time! 🗺️',
       grade: 'Grade 3',
       unit: 'Unit 5',
       image: '📏',
       active: false,
-      description: 'Place fractions on number lines accurately'
+      description: 'Every number has its secret hiding spot!'
     },
     {
       id: 'unit-fractions',
-      title: 'Unit Fractions',
-      subtitle: 'Building blocks of fractions',
+      title: 'Special One-Pieces',
+      subtitle: 'Like LEGO blocks! 🧱',
       grade: 'Grade 3',
       unit: 'Unit 5',
       image: '🧱',
       active: false,
-      description: 'Understand fractions with numerator 1'
+      description: 'The super important building blocks!'
     },
     {
       id: 'fraction-word-problems',
-      title: 'Fraction Word Problems',
-      subtitle: 'Real-world applications',
+      title: 'Real-Life Stories',
+      subtitle: 'Math everywhere! 🌍',
       grade: 'Grade 3',
       unit: 'Unit 5',
       image: '📝',
       active: false,
-      description: 'Solve story problems with fractions'
+      description: 'Math is hiding all around us!'
     }
   ];
 
+  // Get current lesson (first available one) and other lessons
+  const currentLesson = lessons.find(lesson => lesson.active) || lessons[0];
+  const otherLessons = lessons.filter(lesson => lesson.id !== currentLesson.id);
+
   return (
     <div className="lesson-homepage">
-      <header className="homepage-header">
-        <h1>🎵 Math Playlist</h1>
-        <p>With your tutor Pi</p>
-      </header>
-
-      <div className="playlist-container">
-        <div className="playlist-header">
-          <div className="playlist-info">
-            <h2>Grade 3 Fractions</h2>
-            <p>6 lessons • Based on Illustrative Math</p>
+      {/* Featured Lesson - 60% of viewport */}
+      <div className="featured-lesson-section">
+        <div className="featured-lesson-container">
+          {/* Pi Introduction */}
+          <div className="pi-introduction">
+            <div className="pi-character">
+              <div className="pi-avatar">
+                <img src="/assets/pi-character.png" alt="Pi, your learning companion" className="pi-character-img" />
+                <div className="pi-sparkles">✨</div>
+              </div>
+              <div className="pi-speech-bubble">
+                <p>🚀 Ready for math magic?</p>
+              </div>
+            </div>
           </div>
-          <div className="playlist-controls">
-            <button className="shuffle-btn">🔀</button>
-            <button className="play-all-btn" onClick={() => onLessonSelect('intro-fractions')}>
-              ▶️ Start Learning
-            </button>
+
+          {/* Current Lesson Hero */}
+          <div className="current-lesson-hero">
+            <div className="lesson-visual-large">
+              <span className="lesson-emoji-large">{currentLesson.image}</span>
+            </div>
+            
+            <div className="lesson-hero-content">
+              <div className="lesson-meta-small">
+                <span className="lesson-number-badge">🎯 1</span>
+                <span className="lesson-subtitle">✨ {currentLesson.subtitle}</span>
+              </div>
+              
+              <h1 className="lesson-hero-title">{currentLesson.title}</h1>
+              <div className="confidence-boost">💪 You've got this!</div>
+              
+              <div className="lesson-hero-actions">
+                <button 
+                  className="start-lesson-btn" 
+                  onClick={() => onLessonSelect(currentLesson.id)}
+                >
+                  <span className="btn-icon">🚀</span>
+                  Let's Go!
+                  <span className="btn-sparkle">✨</span>
+                </button>
+                <div className="lesson-duration-info">
+                  <span>⏱️ ~10 min</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div className="lessons-playlist">
-          {lessons.map((lesson, index) => (
+      {/* Other Lessons - Below the fold */}
+      <div className="other-lessons-section">
+        <div className="other-lessons-header">
+          <h2>🌟 More Adventures!</h2>
+        </div>
+
+        <div className="other-lessons-grid">
+          {otherLessons.map((lesson, index) => (
             <div
               key={lesson.id}
-              className={`playlist-track ${lesson.active ? 'active' : 'inactive'} spring-in`}
+              className={`lesson-card-small ${lesson.active ? 'available' : 'coming-soon'}`}
               style={{ animationDelay: `${index * 0.05}s` }}
             >
               <button
-                className="track-button"
+                className="lesson-button-small"
                 onClick={() => lesson.active && onLessonSelect(lesson.id)}
                 disabled={!lesson.active}
               >
-                <div className="track-number">
+                <div className="lesson-visual-small">
+                  <span className="lesson-emoji-small">{lesson.image}</span>
+                  <div className="lesson-number-small">{index + 2}</div>
+                </div>
+                
+                <div className="lesson-content-small">
+                  <h3 className="lesson-title-small">{lesson.title}</h3>
+                  <p className="lesson-description-small">{lesson.subtitle}</p>
+                </div>
+                
+                <div className="lesson-status-small">
                   {lesson.active ? (
-                    <span className="play-icon">▶️</span>
+                    <div className="available-badge">Ready</div>
                   ) : (
-                    <span className="track-index">{index + 1}</span>
-                  )}
-                </div>
-                
-                <div className="track-visual">
-                  <span className="track-emoji">{lesson.image}</span>
-                </div>
-                
-                <div className="track-info">
-                  <h3 className="track-title">{lesson.title}</h3>
-                  <p className="track-subtitle">{lesson.subtitle}</p>
-                  <div className="track-meta">
-                    <span className="unit-badge">{lesson.unit}</span>
-                    <span className="difficulty">Easy</span>
-                  </div>
-                </div>
-                
-                <div className="track-status">
-                  {lesson.active ? (
-                    <span className="duration">~10 min</span>
-                  ) : (
-                    <span className="coming-soon-badge">Soon</span>
+                    <div className="coming-soon-badge">Soon</div>
                   )}
                 </div>
               </button>
@@ -148,7 +177,7 @@ const LessonHomepage: React.FC<LessonHomepageProps> = ({ onLessonSelect }) => {
       </div>
 
       <footer className="homepage-footer">
-        <p>🤖 Your AI math tutor is ready to help!</p>
+        <p>💙 You've got this! 🌈</p>
       </footer>
     </div>
   );
