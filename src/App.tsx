@@ -12,6 +12,9 @@ import LessonHomepage from './components/LessonHomepage';
 import LessonTransition from './components/LessonTransition';
 import LessonEntryPopup from './components/LessonEntryPopup';
 import { ToolCallFeedback } from './components/ToolCallFeedback';
+import { PiCharacter, Tool, FRACTION_TOOLS, PiState } from './components/PiCharacter';
+import { ManipulativeStamp } from './components/ManipulativeStamp';
+import { useSmartSuggestions } from './hooks/useSmartSuggestions';
 import { handleToolCall } from './lib/toolImplementations';
 import { useConnectionRetry } from './hooks/useConnectionRetry';
 import { useDebounce } from './hooks/useDebounce';
@@ -36,6 +39,28 @@ function SimiliApp() {
   const [currentColor, setCurrentColor] = useState('#2D3748');
   const [showLessonEntry, setShowLessonEntry] = useState(false);
   const [isProblemMinimized, setIsProblemMinimized] = useState(false);
+  
+  // Pi character and manipulatives state
+  const [piState, setPiState] = useState<PiState>('normal');
+  const [availableTools, setAvailableTools] = useState<Tool[]>(FRACTION_TOOLS);
+  const [placedManipulatives, setPlacedManipulatives] = useState<Array<{
+    id: string;
+    tool: Tool;
+    x: number;
+    y: number;
+    selected: boolean;
+  }>>([]);
+  const [selectedManipulative, setSelectedManipulative] = useState<string | null>(null);
+  
+  // Smart suggestions hook
+  const {
+    hasSuggestion,
+    currentSuggestion,
+    suggestedTools,
+    processDrawingForSuggestions,
+    dismissSuggestion,
+    acceptSuggestion
+  } = useSmartSuggestions();
 
   useEffect(() => {
     // Configure Pi tutor with Gemini Live model
@@ -245,6 +270,12 @@ function SimiliApp() {
   const handleCanvasChange = (imageData: string) => {
     console.log('Canvas change detected, image data length:', imageData.length);
     setCanvasImageData(imageData);
+    
+    // Trigger smart suggestions based on drawing
+    if (imageData && selectedLesson) {
+      const lessonType = selectedLesson.includes('fraction') ? 'fractions' : 'numbers';
+      processDrawingForSuggestions(imageData, lessonType);
+    }
   };
 
   // Use effect to sync debounced canvas data
@@ -429,6 +460,75 @@ function SimiliApp() {
     setSelectedLesson(null);
   };
 
+  // Pi character handlers
+  const handlePiToolRequest = () => {
+    console.log('Pi tool request');
+    setPiState('tools');
+    setAvailableTools(FRACTION_TOOLS); // Could be dynamic based on lesson
+  };
+
+  const handleToolSelect = (tool: Tool) => {
+    console.log('Tool selected:', tool.name);
+    
+    // Add manipulative to center of canvas
+    const canvasCenter = { x: 400, y: 300 }; // Approximate canvas center
+    const newManipulative = {
+      id: `${tool.id}-${Date.now()}`,
+      tool,
+      x: canvasCenter.x + Math.random() * 100 - 50, // Add slight randomness
+      y: canvasCenter.y + Math.random() * 100 - 50,
+      selected: false
+    };
+    
+    setPlacedManipulatives(prev => [...prev, newManipulative]);
+    setPiState('normal');
+    
+    // Pi's encouraging response
+    if (client && connected) {
+      setTimeout(() => {
+        client.send({
+          text: `Great choice! I just gave you ${tool.name} to help with your thinking. You can move it around and use it however feels right to you!`
+        });
+      }, 500);
+    }
+  };
+
+  const handleManipulativeMove = (id: string, newX: number, newY: number) => {
+    setPlacedManipulatives(prev =>
+      prev.map(manip =>
+        manip.id === id ? { ...manip, x: newX, y: newY } : manip
+      )
+    );
+  };
+
+  const handleManipulativeSelect = (id: string) => {
+    setSelectedManipulative(id);
+    setPlacedManipulatives(prev =>
+      prev.map(manip => ({
+        ...manip,
+        selected: manip.id === id
+      }))
+    );
+  };
+
+  const handleManipulativeRemove = (id: string) => {
+    setPlacedManipulatives(prev => prev.filter(manip => manip.id !== id));
+    setSelectedManipulative(null);
+  };
+
+  const handlePiSuggestionDismiss = () => {
+    dismissSuggestion();
+    setPiState('normal');
+  };
+
+  // Update Pi state based on suggestions
+  useEffect(() => {
+    if (hasSuggestion && piState === 'normal') {
+      setPiState('suggestion');
+      setAvailableTools(suggestedTools);
+    }
+  }, [hasSuggestion, suggestedTools, piState]);
+
   return (
     <div className="simili-app" style={{ backgroundColor: designSystem.colors.paper }}>
       {connected && <ToolCallFeedback />}
@@ -541,18 +641,41 @@ function SimiliApp() {
                 </button>
               </div>
 
-              {/* Floating Pi indicator */}
+              {/* Pi Character with Tool Satchel */}
               <div className="floating-pi-indicator">
-                <div className="pi-avatar-small">
-                  <img src="/assets/pi-character.png" alt="Pi" />
-                </div>
-                <span className={`pi-status ${connected ? 'listening' : 'connecting'}`}>
+                <PiCharacter
+                  state={piState}
+                  onToolRequest={handlePiToolRequest}
+                  onToolSelect={handleToolSelect}
+                  onDismissSuggestion={handlePiSuggestionDismiss}
+                  availableTools={availableTools}
+                  suggestion={currentSuggestion}
+                  className="workspace-pi"
+                />
+                
+                {/* Pi status display */}
+                <div className={`pi-status ${connected ? 'listening' : 'connecting'}`}>
                   {connected ? (
                     <VoiceInput />
                   ) : (
                     'Getting ready...'
                   )}
-                </span>
+                </div>
+              </div>
+
+              {/* Manipulatives Overlay */}
+              <div className="manipulatives-overlay">
+                {placedManipulatives.map((manipulative) => (
+                  <ManipulativeStamp
+                    key={manipulative.id}
+                    tool={manipulative.tool}
+                    x={manipulative.x}
+                    y={manipulative.y}
+                    isSelected={manipulative.selected}
+                    onMove={(newX, newY) => handleManipulativeMove(manipulative.id, newX, newY)}
+                    onRemove={() => handleManipulativeRemove(manipulative.id)}
+                  />
+                ))}
               </div>
             </div>
 

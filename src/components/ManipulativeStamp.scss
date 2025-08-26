@@ -1,0 +1,129 @@
+.manipulative-stamp {
+  position: absolute;
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.1s ease;
+  z-index: 10;
+  
+  &:hover {
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+  
+  &:active {
+    cursor: grabbing;
+    transform: translate(-50%, -50%) scale(0.98);
+  }
+  
+  &.selected {
+    filter: drop-shadow(0 0 8px #4ECDC4);
+    
+    .stamp-remove {
+      opacity: 1;
+    }
+  }
+  
+  &.small {
+    transform: translate(-50%, -50%) scale(0.7);
+    
+    &:hover {
+      transform: translate(-50%, -50%) scale(0.75);
+    }
+  }
+  
+  &.large {
+    transform: translate(-50%, -50%) scale(1.3);
+    
+    &:hover {
+      transform: translate(-50%, -50%) scale(1.35);
+    }
+  }
+  
+  .stamp-remove {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: #E53E3E;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 20;
+    
+    &:hover {
+      background: #C53030;
+      transform: scale(1.1);
+    }
+  }
+  
+  .generic-stamp {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    background: #FFFEF7;
+    border: 2px solid #2D3748;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    
+    .stamp-emoji {
+      font-size: 24px;
+      margin-bottom: 4px;
+    }
+    
+    .stamp-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #2D3748;
+      text-align: center;
+      line-height: 1.2;
+    }
+  }
+  
+  // Individual manipulative styles
+  .pizza-slice,
+  .fraction-bar,
+  .fraction-circle,
+  .pie-chart,
+  .number-line {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  }
+  
+  .pizza-slice {
+    background: #FFFEF7;
+    border-radius: 50%;
+    padding: 5px;
+  }
+  
+  .fraction-bar {
+    background: #FFFEF7;
+    border-radius: 8px;
+    padding: 5px;
+  }
+  
+  .fraction-circle {
+    background: #FFFEF7;
+    border-radius: 50%;
+    padding: 5px;
+  }
+  
+  .pie-chart {
+    background: #FFFEF7;
+    border-radius: 50%;
+    padding: 5px;
+  }
+  
+  .number-line {
+    background: #FFFEF7;
+    border-radius: 8px;
+    padding: 5px;
+  }
+}

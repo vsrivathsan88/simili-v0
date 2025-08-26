@@ -1,0 +1,223 @@
+.pi-character {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  
+  .pi-avatar {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    img {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      transition: transform 0.2s ease;
+    }
+    
+    &:hover {
+      img {
+        transform: scale(1.1);
+      }
+    }
+    
+    &.suggestion {
+      img {
+        filter: drop-shadow(0 0 10px #FFA500);
+        animation: gentle-pulse 2s infinite;
+      }
+    }
+    
+    &.tools {
+      img {
+        transform: scale(1.1);
+      }
+    }
+  }
+  
+  // Suggestion bubble
+  .pi-suggestion-bubble {
+    position: absolute;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #FFFEF7;
+    border: 2px solid #4ECDC4;
+    border-radius: 12px;
+    padding: 8px 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+    z-index: 10;
+    animation: bounce-in 0.3s ease-out;
+    
+    .bubble-content {
+      font-size: 14px;
+      color: #2D3748;
+      font-weight: 500;
+    }
+    
+    .bubble-dismiss {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: none;
+      background: #FF6B6B;
+      color: white;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      &:hover {
+        background: #E53E3E;
+      }
+    }
+    
+    // Speech bubble tail
+    &::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid #4ECDC4;
+    }
+  }
+  
+  // Floating tools menu
+  .pi-tools-menu {
+    position: absolute;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #FFFEF7;
+    border: 3px solid #4ECDC4;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    z-index: 20;
+    animation: slide-up 0.3s ease-out;
+    min-width: 250px;
+    
+    .tools-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #2D3748;
+      
+      .tools-close {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        color: #718096;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        
+        &:hover {
+          background: #E2E8F0;
+        }
+      }
+    }
+    
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      
+      .tool-option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 12px 8px;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        background: #F7FAFC;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        
+        &:hover {
+          border-color: #4ECDC4;
+          background: #E0F7FF;
+          transform: translateY(-2px);
+        }
+        
+        .tool-emoji {
+          font-size: 24px;
+          margin-bottom: 4px;
+        }
+        
+        .tool-name {
+          font-size: 12px;
+          font-weight: 500;
+          color: #2D3748;
+          text-align: center;
+          line-height: 1.2;
+        }
+      }
+    }
+  }
+  
+  // Encouraging message
+  .pi-encouragement {
+    position: absolute;
+    bottom: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    font-style: italic;
+    color: #4ECDC4;
+    white-space: nowrap;
+    animation: fade-in 0.5s ease-in 0.3s both;
+  }
+}
+
+// Animations
+@keyframes gentle-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes slide-up {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}

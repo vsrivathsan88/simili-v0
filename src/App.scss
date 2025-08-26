@@ -183,36 +183,34 @@
     }
   }
   
-  // Floating Pi indicator
+  // Floating Pi indicator with new character system
   .floating-pi-indicator {
     position: absolute;
     bottom: 20px;
     right: 20px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(12px);
-    border-radius: 32px;
-    padding: 12px 20px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-    border: 2px solid #4ECDC4;
-    z-index: 100;
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 12px;
-    
-    .pi-avatar-small {
-      width: 40px;
-      height: 40px;
-      
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-      }
+    z-index: 100;
+
+    .workspace-pi {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      padding: 12px;
+      border-radius: 50px;
+      border: 2px solid #4ECDC4;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
     }
-    
+
     .pi-status {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 600;
+      text-align: center;
+      padding: 4px 8px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 8px;
+      border: 1px solid #E2E8F0;
       color: #374151;
       font-family: $hand-drawn-font;
       
@@ -228,6 +226,22 @@
       &.talking {
         color: #5B21B6;
       }
+    }
+  }
+
+  // Manipulatives overlay
+  .manipulatives-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; // Allow canvas interaction through overlay
+    z-index: 50;
+    
+    // Re-enable pointer events for manipulatives
+    .manipulative-stamp {
+      pointer-events: auto;
     }
   }
   
