@@ -354,3 +354,239 @@
     margin-top: var(--spacing-md);
   }
 }
+
+// New optimized workspace layout
+.simili-workspace-optimized {
+  height: calc(100vh - 60px);
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  grid-template-rows: 1fr 80px;
+  grid-template-areas: 
+    "sidebar main"
+    "toolbar toolbar";
+  background: linear-gradient(135deg, #FFFEF7 0%, #F8FAFC 100%);
+  overflow: hidden;
+  
+  // Left sidebar with problem and Pi
+  .workspace-sidebar {
+    grid-area: sidebar;
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.8);
+    border-right: 2px solid #E2E8F0;
+    padding: 20px;
+    gap: 20px;
+    
+    .sidebar-problem {
+      flex: 0 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border: 1px solid #E2E8F0;
+    }
+    
+    .sidebar-pi {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border: 1px solid #E2E8F0;
+      
+      .sidebar-pi-character {
+        // Pi character styles will be inherited
+      }
+      
+      .pi-status {
+        font-size: 12px;
+        font-weight: 600;
+        text-align: center;
+        padding: 4px 8px;
+        background: #F7FAFC;
+        border-radius: 6px;
+        color: #374151;
+        font-family: $hand-drawn-font;
+        
+        &.listening {
+          color: #059669;
+          background: #D1FAE5;
+        }
+        
+        &.connecting {
+          color: #D97706;
+          background: #FED7AA;
+          animation: gentlePulse 2s ease-in-out infinite;
+        }
+      }
+      
+      .end-session-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: none;
+        background: #DC2626;
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        margin-top: auto;
+        
+        &:hover {
+          background: #B91C1C;
+          transform: scale(1.1);
+        }
+        
+        &:active {
+          transform: scale(0.95);
+        }
+      }
+    }
+  }
+  
+  // Main canvas area
+  .workspace-main {
+    grid-area: main;
+    position: relative;
+    overflow: hidden;
+    
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: white;
+      
+      .manipulatives-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 50;
+        
+        .manipulative-stamp {
+          pointer-events: auto;
+        }
+      }
+    }
+  }
+  
+  // Bottom toolbar
+  .workspace-toolbar {
+    grid-area: toolbar;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 0 24px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 2px solid #E2E8F0;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+    
+    .toolbar-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      .toolbar-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #6B7280;
+        font-family: $hand-drawn-font;
+      }
+    }
+    
+    .toolbar-divider {
+      width: 1px;
+      height: 24px;
+      background: #D1D5DB;
+    }
+    
+    .tool-btn, .manipulative-btn, .more-tools-btn {
+      width: 40px;
+      height: 40px;
+      border: 2px solid transparent;
+      background: #F9FAFB;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background: #F3F4F6;
+        transform: translateY(-1px);
+      }
+      
+      &.active {
+        border-color: #4ECDC4;
+        background: #E0F7FF;
+        box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+      }
+    }
+    
+    .color-btn {
+      width: 32px;
+      height: 32px;
+      border: 2px solid #E5E7EB;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s ease;
+      
+      &:hover {
+        transform: scale(1.1);
+      }
+      
+      &.active {
+        border-color: #374151;
+        border-width: 3px;
+        transform: scale(1.15);
+      }
+    }
+    
+    .clear-btn {
+      background: #FEF2F2;
+      color: #DC2626;
+      border-color: #FECACA;
+      font-size: 12px;
+      font-weight: 600;
+      gap: 4px;
+      width: auto;
+      padding: 0 12px;
+      
+      &:hover {
+        background: #FEE2E2;
+        border-color: #FCA5A5;
+      }
+    }
+    
+    .more-tools-btn {
+      background: #EFF6FF;
+      color: #1D4ED8;
+      border-color: #DBEAFE;
+      
+      &:hover {
+        background: #DBEAFE;
+        border-color: #93C5FD;
+      }
+    }
+  }
+}

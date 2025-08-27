@@ -546,10 +546,55 @@ function SimiliApp() {
             onComplete={handleTransitionComplete}
           />
         ) : (
-          <div className="simili-workspace">
-            <div className="workspace-canvas-first">
-              {/* Full screen canvas */}
-              <div className="canvas-full">
+          <div className="simili-workspace-optimized">
+            {/* Left sidebar with problem and Pi */}
+            <div className="workspace-sidebar">
+              {/* Problem display */}
+              <div className="sidebar-problem">
+                <ProblemDisplay 
+                  onImageUpload={handleProblemImageUpload}
+                  lessonId={selectedLesson || undefined}
+                />
+              </div>
+
+              {/* Pi character section */}
+              <div className="sidebar-pi">
+                <PiCharacter
+                  state={piState}
+                  onToolRequest={handlePiToolRequest}
+                  onToolSelect={handleToolSelect}
+                  onDismissSuggestion={handlePiSuggestionDismiss}
+                  availableTools={availableTools}
+                  suggestion={currentSuggestion}
+                  className="sidebar-pi-character"
+                />
+                
+                {/* Pi status */}
+                <div className={`pi-status ${connected ? 'listening' : 'connecting'}`}>
+                  {connected ? (
+                    <VoiceInput />
+                  ) : (
+                    'Getting ready...'
+                  )}
+                </div>
+
+                {/* End session button */}
+                <button 
+                  className="end-session-btn" 
+                  onClick={() => {
+                    if (window.confirm('End your adventure with Pi? 🚀\n\nYour thinking will be saved!')) {
+                      handleDisconnect();
+                    }
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            {/* Main canvas area */}
+            <div className="workspace-main">
+              <div className="canvas-container">
                 <UnifiedCanvas 
                   onCanvasChange={handleCanvasChange}
                   problemImage={problemImage}
@@ -560,45 +605,29 @@ function SimiliApp() {
                   onColorChange={setCurrentColor}
                   onClear={handleClear}
                 />
-              </div>
 
-              {/* Floating problem card */}
-              <div className={`floating-problem-card ${isProblemMinimized ? 'minimized' : ''}`}
-                onClick={() => isProblemMinimized && setIsProblemMinimized(false)}>
-                {!isProblemMinimized && (
-                  <>
-                    <button 
-                      className="minimize-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsProblemMinimized(true);
-                      }}
-                    >
-                      −
-                    </button>
-                    <div className="problem-content">
-                      <ProblemDisplay 
-                        onImageUpload={handleProblemImageUpload}
-                        lessonId={selectedLesson || undefined}
-                      />
-                      <button 
-                        className="end-session-btn" 
-                        onClick={() => {
-                          if (window.confirm('End your adventure with Pi? 🚀\n\nYour thinking will be saved!')) {
-                            handleDisconnect();
-                          }
-                        }}
-                      >
-                        End Adventure
-                      </button>
-                    </div>
-                  </>
-                )}
+                {/* Manipulatives overlay */}
+                <div className="manipulatives-overlay">
+                  {placedManipulatives.map((manipulative) => (
+                    <ManipulativeStamp
+                      key={manipulative.id}
+                      tool={manipulative.tool}
+                      x={manipulative.x}
+                      y={manipulative.y}
+                      isSelected={manipulative.selected}
+                      onMove={(newX, newY) => handleManipulativeMove(manipulative.id, newX, newY)}
+                      onRemove={() => handleManipulativeRemove(manipulative.id)}
+                    />
+                  ))}
+                </div>
               </div>
+            </div>
 
-              {/* Floating mini toolbar */}
-              <div className="floating-toolbar">
-                {/* Drawing tools */}
+            {/* Bottom toolbar */}
+            <div className="workspace-toolbar">
+              {/* Drawing tools */}
+              <div className="toolbar-section">
+                <span className="toolbar-label">Draw:</span>
                 <button 
                   className={`tool-btn ${currentTool === 'pencil' ? 'active' : ''}`}
                   onClick={() => handleToolChange('pencil')}
@@ -613,10 +642,13 @@ function SimiliApp() {
                 >
                   🧽
                 </button>
-                
-                <div className="divider" />
-                
-                {/* Colors */}
+              </div>
+              
+              <div className="toolbar-divider" />
+              
+              {/* Colors */}
+              <div className="toolbar-section">
+                <span className="toolbar-label">Colors:</span>
                 {colors.map((color) => (
                   <button
                     key={color.value}
@@ -628,54 +660,43 @@ function SimiliApp() {
                     {currentColor === color.value ? '✓' : ''}
                   </button>
                 ))}
-                
-                <div className="divider" />
-                
-                {/* Clear */}
+              </div>
+              
+              <div className="toolbar-divider" />
+              
+              {/* Manipulatives from Pi's satchel */}
+              <div className="toolbar-section">
+                <span className="toolbar-label">From Pi's satchel:</span>
+                {availableTools.slice(0, 4).map((tool) => (
+                  <button
+                    key={tool.id}
+                    className="manipulative-btn"
+                    onClick={() => handleToolSelect(tool)}
+                    title={tool.name}
+                  >
+                    {tool.emoji}
+                  </button>
+                ))}
+                <button 
+                  className="more-tools-btn"
+                  onClick={handlePiToolRequest}
+                  title="More tools from Pi"
+                >
+                  🎒
+                </button>
+              </div>
+              
+              <div className="toolbar-divider" />
+              
+              {/* Clear */}
+              <div className="toolbar-section">
                 <button 
                   className="tool-btn clear-btn"
                   onClick={handleClear}
                   title="Clear everything"
                 >
-                  🗑️
+                  🗑️ Clear
                 </button>
-              </div>
-
-              {/* Pi Character with Tool Satchel */}
-              <div className="floating-pi-indicator">
-                <PiCharacter
-                  state={piState}
-                  onToolRequest={handlePiToolRequest}
-                  onToolSelect={handleToolSelect}
-                  onDismissSuggestion={handlePiSuggestionDismiss}
-                  availableTools={availableTools}
-                  suggestion={currentSuggestion}
-                  className="workspace-pi"
-                />
-                
-                {/* Pi status display */}
-                <div className={`pi-status ${connected ? 'listening' : 'connecting'}`}>
-                  {connected ? (
-                    <VoiceInput />
-                  ) : (
-                    'Getting ready...'
-                  )}
-                </div>
-              </div>
-
-              {/* Manipulatives Overlay */}
-              <div className="manipulatives-overlay">
-                {placedManipulatives.map((manipulative) => (
-                  <ManipulativeStamp
-                    key={manipulative.id}
-                    tool={manipulative.tool}
-                    x={manipulative.x}
-                    y={manipulative.y}
-                    isSelected={manipulative.selected}
-                    onMove={(newX, newY) => handleManipulativeMove(manipulative.id, newX, newY)}
-                    onRemove={() => handleManipulativeRemove(manipulative.id)}
-                  />
-                ))}
               </div>
             </div>
 
