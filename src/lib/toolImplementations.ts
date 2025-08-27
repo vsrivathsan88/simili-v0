@@ -29,12 +29,21 @@ export interface CanvasAnnotation {
   message?: string;
 }
 
+export interface OffTaskEvent {
+  id: string;
+  timestamp: number;
+  observation: string;
+  redirectMessage: string;
+  problemElement: string;
+}
+
 // Store for session data
 export const sessionStore = {
   reasoningSteps: [] as ReasoningStep[],
   misconceptions: [] as Misconception[],
   annotations: [] as CanvasAnnotation[],
-  celebrations: [] as any[]
+  celebrations: [] as any[],
+  offTaskEvents: [] as OffTaskEvent[]
 };
 
 // Tool implementation functions
@@ -110,14 +119,15 @@ export const toolImplementations = {
     console.log('Redirecting student back to task:', params);
     
     // Track off-task behavior
-    sessionStore.offTaskEvents = sessionStore.offTaskEvents || [];
-    sessionStore.offTaskEvents.push({
+    const offTaskEvent: OffTaskEvent = {
       id: uuidv4(),
       timestamp: Date.now(),
       observation: params.observation,
       redirectMessage: params.redirect_message,
       problemElement: params.problem_element
-    });
+    };
+    
+    sessionStore.offTaskEvents.push(offTaskEvent);
     
     // Emit event for UI feedback (could show gentle animation)
     window.dispatchEvent(new CustomEvent('redirect-to-task', { 
