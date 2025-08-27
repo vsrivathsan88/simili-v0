@@ -106,6 +106,34 @@ export const toolImplementations = {
     return { success: true, delivered: 'verbally' };
   },
   
+  redirect_to_task: async (params: any) => {
+    console.log('Redirecting student back to task:', params);
+    
+    // Track off-task behavior
+    sessionStore.offTaskEvents = sessionStore.offTaskEvents || [];
+    sessionStore.offTaskEvents.push({
+      id: uuidv4(),
+      timestamp: Date.now(),
+      observation: params.observation,
+      redirectMessage: params.redirect_message,
+      problemElement: params.problem_element
+    });
+    
+    // Emit event for UI feedback (could show gentle animation)
+    window.dispatchEvent(new CustomEvent('redirect-to-task', { 
+      detail: {
+        message: params.redirect_message,
+        problemElement: params.problem_element
+      }
+    }));
+    
+    return { 
+      success: true, 
+      redirected: true, 
+      message: params.redirect_message 
+    };
+  },
+  
   celebrate_exploration: async (params: any) => {
     const celebrationId = uuidv4();
     

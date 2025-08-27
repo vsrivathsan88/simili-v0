@@ -61,6 +61,13 @@ function SimiliApp() {
     dismissSuggestion,
     acceptSuggestion
   } = useSmartSuggestions();
+  
+  // Session state to prevent introduction loops
+  const [sessionState, setSessionState] = useState({
+    hasIntroduced: false,
+    firstImagesShared: false,
+    lastVisionSync: 0
+  });
 
   useEffect(() => {
     // Configure Pi tutor with Gemini Live model
@@ -82,6 +89,20 @@ function SimiliApp() {
       console.log('Connected to Gemini Live');
       // Start session recording
       sessionRecorder.startSession('pizza-fractions-1');
+      
+      // Send initial introduction only once per session
+      setTimeout(() => {
+        if (client && connected && !sessionState.hasIntroduced) {
+          client.send({
+            text: `SESSION_START: This is the beginning of a new learning session. The student just connected. Give your FIRST INTRODUCTION as specified in your instructions - be brief, welcoming, and then wait for them to start working on the problem. Do NOT introduce yourself again during this session.`
+          });
+          
+          setSessionState(prev => ({ 
+            ...prev, 
+            hasIntroduced: true 
+          }));
+        }
+      }, 1000);
     };
 
     const handleClose = (event: any) => {
@@ -329,7 +350,7 @@ function SimiliApp() {
       console.log('Problem image type:', problemImg.split(',')[0]);
       console.log('Canvas image type:', canvasImg.split(',')[0]);
       
-      // Send both images with clear labels in one call
+      // Send both images with clear context
       client.sendRealtimeInput([
         {
           mimeType: 'image/jpeg',
@@ -343,14 +364,44 @@ function SimiliApp() {
       
       console.log('Vision API: Successfully sent both images to Pi');
       
-      // Also send a clear context message to help Pi understand
+      // Send clear context about what Pi is seeing with session awareness
       setTimeout(() => {
         if (client && connected) {
-          client.send({
-            text: "Hi Pi! I just sent you two images: (1) The math problem I'm working on, and (2) My current work on the canvas. Please look at both images and help guide me through this problem. Can you see what I've drawn so far?"
-          });
+          const now = Date.now();
+          const isFirstTime = !sessionState.firstImagesShared;
+          
+          if (isFirstTime) {
+            // First time sharing images
+            client.send({
+              text: `Pi, I'm sharing two images with you: 
+
+Image 1: The math problem I need to solve
+Image 2: My current work on the student notebook/canvas
+
+This is the first time I'm showing you my work. Please look at both images and help me get started on this problem. Focus on what I've drawn or written on my canvas and guide me based on my current progress.`
+            });
+            
+            setSessionState(prev => ({ 
+              ...prev, 
+              firstImagesShared: true,
+              lastVisionSync: now 
+            }));
+          } else {
+            // Subsequent updates - only send if significant time has passed
+            const timeSinceLastSync = now - sessionState.lastVisionSync;
+            if (timeSinceLastSync > 3000) { // Only every 3+ seconds
+              client.send({
+                text: `Pi, here's an updated view of my work on the canvas. Please look at what I've drawn or changed and continue helping me with the problem. If I'm getting off track, please redirect me back to the math.`
+              });
+              
+              setSessionState(prev => ({ 
+                ...prev, 
+                lastVisionSync: now 
+              }));
+            }
+          }
         }
-      }, 200);
+      }, 300);
       
     } catch (error) {
       console.error('Error sending images to vision API:', error);
