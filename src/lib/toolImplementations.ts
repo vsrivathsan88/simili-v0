@@ -144,6 +144,26 @@ export const toolImplementations = {
     };
   },
   
+  analyze_student_work: async (params: any) => {
+    console.log('Pi requesting detailed work analysis:', params);
+    
+    // Trigger immediate high-quality vision analysis
+    window.dispatchEvent(new CustomEvent('request-detailed-analysis', {
+      detail: {
+        focusArea: params.focus_area,
+        question: params.question,
+        context: params.context,
+        timestamp: Date.now()
+      }
+    }));
+    
+    return {
+      success: true,
+      analysisRequested: params.focus_area,
+      message: 'Detailed vision analysis initiated'
+    };
+  },
+  
   celebrate_exploration: async (params: any) => {
     const celebrationId = uuidv4();
     

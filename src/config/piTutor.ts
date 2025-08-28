@@ -181,6 +181,29 @@ export const piToolDeclarations: FunctionDeclaration[] = [
     }
   },
   {
+    name: "analyze_student_work",
+    description: "Request detailed vision analysis of student's current work using high-quality vision model",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        focus_area: {
+          type: Type.STRING,
+          enum: ["overall_progress", "specific_drawing", "math_concepts", "problem_approach", "off_task_check"],
+          description: "What aspect to focus the analysis on"
+        },
+        question: {
+          type: Type.STRING,
+          description: "Specific question about the student's work"
+        },
+        context: {
+          type: Type.STRING,
+          description: "Additional context about what you want to understand"
+        }
+      },
+      required: ["focus_area"]
+    }
+  },
+  {
     name: "annotate_canvas",
     description: "Draw on student's canvas to provide visual guidance",
     parameters: {

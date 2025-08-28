@@ -17,8 +17,10 @@ import { ManipulativeStamp } from './components/ManipulativeStamp';
 import { useSmartSuggestions } from './hooks/useSmartSuggestions';
 import { handleToolCall } from './lib/toolImplementations';
 import { useConnectionRetry } from './hooks/useConnectionRetry';
-import { useDebounce } from './hooks/useDebounce';
+// useDebounce removed - now using real-time updates
 import { sessionRecorder } from './lib/sessionRecorder';
+import { EnhancedVisionService } from './lib/visionService';
+import { RealTimeCanvasHandler } from './lib/realtimeCanvas';
 import { Modality } from '@google/genai';
 import './App.scss';
 
@@ -26,8 +28,7 @@ import './App.scss';
 function SimiliApp() {
   const { client, setConfig, setModel, connect, disconnect, connected } = useLiveAPIContext();
   // Remove local isConnected state - use connected from context
-  const [canvasImageData, setCanvasImageData] = useState<string>('');
-  const debouncedCanvasData = useDebounce(canvasImageData, 2000); // Debounce canvas updates by 2 seconds
+  const [canvasImageData, setCanvasImageData] = useState<string>(''); // Real-time canvas updates
   const [problemImage, setProblemImage] = useState<string>('');
   const [showVoicePermission, setShowVoicePermission] = useState(false);
   const [showTeacherPanel, setShowTeacherPanel] = useState(false);
@@ -68,10 +69,23 @@ function SimiliApp() {
     firstImagesShared: false,
     lastVisionSync: 0
   });
+  
+  // Real-time vision system
+  const [visionService, setVisionService] = useState<EnhancedVisionService | null>(null);
+  const [realtimeCanvas, setRealtimeCanvas] = useState<RealTimeCanvasHandler | null>(null);
+  const [isStudentActive, setIsStudentActive] = useState(false);
 
   useEffect(() => {
     // Configure Pi tutor with Gemini Live model
     setModel("gemini-2.0-flash-live-001");
+    
+    // Initialize enhanced vision service
+    const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
+    if (apiKey && !visionService) {
+      const vision = new EnhancedVisionService(apiKey);
+      setVisionService(vision);
+      console.log('Enhanced vision service initialized');
+    }
     setConfig({
       systemInstruction: {
         parts: [{ text: PI_SYSTEM_INSTRUCTION }]
@@ -80,6 +94,37 @@ function SimiliApp() {
       responseModalities: [Modality.AUDIO]
     });
   }, [setConfig, setModel]);
+
+  // Initialize real-time canvas when vision service and problem image are available
+  useEffect(() => {
+    if (visionService && problemImage && !realtimeCanvas) {
+      const canvasHandler = new RealTimeCanvasHandler({
+        visionService,
+        problemImage,
+        onVisionUpdate: (analysisData) => {
+          console.log('Vision analysis received:', analysisData);
+          
+          // Send analysis results to Pi through Gemini Live
+          if (client && connected) {
+            client.send({
+              text: `VISION_ANALYSIS: ${JSON.stringify({
+                context: analysisData.context,
+                analysis: analysisData.analysis,
+                timestamp: analysisData.timestamp
+              })}`
+            });
+          }
+        },
+        onActivityChange: (isActive) => {
+          setIsStudentActive(isActive);
+          console.log('Student activity changed:', isActive ? 'drawing' : 'paused');
+        }
+      });
+      
+      setRealtimeCanvas(canvasHandler);
+      console.log('Real-time canvas handler initialized');
+    }
+  }, [visionService, problemImage, realtimeCanvas, client, connected]);
 
   useEffect(() => {
     if (!client) return;
@@ -297,24 +342,23 @@ function SimiliApp() {
       const lessonType = selectedLesson.includes('fraction') ? 'fractions' : 'numbers';
       processDrawingForSuggestions(imageData, lessonType);
     }
+    
+    // Send to real-time canvas handler for immediate processing
+    if (realtimeCanvas && imageData) {
+      realtimeCanvas.handleCanvasEvent({
+        type: 'stroke_end',
+        timestamp: Date.now()
+      }, imageData);
+    }
   };
 
-  // Use effect to sync debounced canvas data
+  // Update real-time canvas when problem image changes
   useEffect(() => {
-    console.log('Vision sync check:', {
-      hasCanvasData: !!debouncedCanvasData,
-      hasProblemImage: !!problemImage,
-      isConnected: connected,
-      hasClient: !!client
-    });
-    
-    if (debouncedCanvasData && problemImage && connected && client) {
-      console.log('All conditions met - sending to vision API');
-      sendToVisionAPI(problemImage, debouncedCanvasData);
-    } else {
-      console.log('Vision sync skipped - missing requirements');
+    if (realtimeCanvas && problemImage) {
+      realtimeCanvas.updateProblemImage(problemImage);
+      console.log('Updated problem image in real-time canvas');
     }
-  }, [debouncedCanvasData, problemImage, connected, client]);
+  }, [realtimeCanvas, problemImage]);
 
   const handleProblemImageUpload = (imageData: string) => {
     setProblemImage(imageData);
@@ -464,11 +508,28 @@ This is the first time I'm showing you my work. Please look at both images and h
 
   const handleToolChange = (tool: 'pencil' | 'eraser' | 'text') => {
     setCurrentTool(tool);
+    
+    // Notify real-time canvas of tool change
+    if (realtimeCanvas && canvasImageData) {
+      realtimeCanvas.handleCanvasEvent({
+        type: 'tool_change',
+        timestamp: Date.now(),
+        data: { tool }
+      }, canvasImageData);
+    }
   };
 
   const handleClear = () => {
-    // This will be handled by the UnifiedCanvas component
+    // Clear canvas and notify real-time system
     console.log('Clear requested');
+    setCanvasImageData('');
+    
+    if (realtimeCanvas) {
+      realtimeCanvas.handleCanvasEvent({
+        type: 'clear',
+        timestamp: Date.now()
+      }, ''); // Empty canvas
+    }
   };
 
   const handleAddManipulative = (type: 'fraction-bar' | 'number-line' | 'area-model' | 'array-grid' | 'fraction-circles' | 'visual-number-line') => {
@@ -550,6 +611,23 @@ This is the first time I'm showing you my work. Please look at both images and h
         manip.id === id ? { ...manip, x: newX, y: newY } : manip
       )
     );
+    
+    // Notify real-time canvas of manipulative movement
+    if (realtimeCanvas && canvasImageData) {
+      const manipulative = placedManipulatives.find(m => m.id === id);
+      if (manipulative) {
+        realtimeCanvas.handleCanvasEvent({
+          type: 'manipulative_move',
+          timestamp: Date.now(),
+          data: { 
+            type: manipulative.tool.name,
+            x: newX, 
+            y: newY,
+            id 
+          }
+        }, canvasImageData);
+      }
+    }
   };
 
   const handleManipulativeSelect = (id: string) => {
