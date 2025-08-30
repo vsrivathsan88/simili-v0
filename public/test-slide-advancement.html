@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Slide Advancement</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+        .console { background: #f0f0f0; padding: 10px; margin: 10px 0; min-height: 200px; font-family: monospace; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Slide Advancement Testing</h1>
+    <p>This page helps debug the slide advancement system</p>
+    
+    <div>
+        <button onclick="testEventListener()">Test Event Listener</button>
+        <button onclick="testManualAdvancement()">Test Manual Advancement</button>
+        <button onclick="testToolCall()">Test Tool Call Simulation</button>
+        <button onclick="clearConsole()">Clear Console</button>
+    </div>
+    
+    <div id="console" class="console"></div>
+    
+    <script>
+        const consoleDiv = document.getElementById('console');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = `[${timestamp}] ${message}`;
+            consoleDiv.appendChild(div);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        function clearConsole() {
+            consoleDiv.innerHTML = '';
+        }
+        
+        // Listen for advance-slide events
+        window.addEventListener('advance-slide', (event) => {
+            log(`✅ Received advance-slide event: ${JSON.stringify(event.detail)}`, 'success');
+        });
+        
+        function testEventListener() {
+            log('Testing event listener...', 'info');
+            
+            // Fire a test event
+            window.dispatchEvent(new CustomEvent('advance-slide', {
+                detail: {
+                    id: 'test-' + Date.now(),
+                    currentSlide: 1,
+                    nextSlide: 2,
+                    masteryEvidence: "Test evidence from test page",
+                    timestamp: Date.now(),
+                    validation: {
+                        confidence: 1.0,
+                        shouldAdvance: true,
+                        evidence: ["Test evidence"],
+                        missingElements: []
+                    }
+                }
+            }));
+            
+            log('🚀 Test event dispatched', 'info');
+        }
+        
+        function testManualAdvancement() {
+            log('Testing manual slide advancement...', 'info');
+            
+            // Try to access the global development functions if available
+            if (typeof window.goToSlide === 'function') {
+                log('✅ goToSlide function available', 'success');
+                try {
+                    window.goToSlide(2);
+                    log('✅ goToSlide(2) called successfully', 'success');
+                } catch (error) {
+                    log(`❌ Error calling goToSlide: ${error.message}`, 'error');
+                }
+            } else {
+                log('❌ goToSlide function not available', 'error');
+            }
+            
+            if (typeof window.getCurrentSlide === 'function') {
+                try {
+                    const currentState = window.getCurrentSlide();
+                    log(`✅ Current slide state: ${JSON.stringify(currentState)}`, 'success');
+                } catch (error) {
+                    log(`❌ Error getting current slide: ${error.message}`, 'error');
+                }
+            } else {
+                log('❌ getCurrentSlide function not available', 'error');
+            }
+        }
+        
+        function testToolCall() {
+            log('Testing tool call simulation...', 'info');
+            
+            // Simulate what the AI's advance_slide tool would do
+            const toolCallResult = {
+                name: 'advance_slide',
+                args: {
+                    current_slide: 1,
+                    next_slide: 2,
+                    mastery_evidence: "Student said 'I'm ready to learn!' indicating readiness"
+                }
+            };
+            
+            log(`🤖 Simulating AI tool call: ${JSON.stringify(toolCallResult)}`, 'info');
+            
+            // This would normally be handled by toolImplementations.advance_slide
+            // Let's manually fire the same event that would be fired
+            window.dispatchEvent(new CustomEvent('advance-slide', {
+                detail: {
+                    id: 'simulated-' + Date.now(),
+                    currentSlide: toolCallResult.args.current_slide,
+                    nextSlide: toolCallResult.args.next_slide,
+                    masteryEvidence: toolCallResult.args.mastery_evidence,
+                    timestamp: Date.now(),
+                    validation: {
+                        confidence: 0.9,
+                        shouldAdvance: true,
+                        evidence: ["Student readiness expressed"],
+                        missingElements: []
+                    }
+                }
+            }));
+            
+            log('🚀 Simulated tool call event dispatched', 'info');
+        }
+        
+        log('🔧 Test page loaded. Event listener set up.', 'info');
+        log('Open this page in a separate tab from your main app to test independently.', 'info');
+    </script>
+</body>
+</html>

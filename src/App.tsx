@@ -54,23 +54,15 @@ function SimiliApp() {
 
     // Set up event listeners
     const handleOpen = () => {
-      console.log('Connected to Gemini Live');
       // Start session recording
       sessionRecorder.startSession('pizza-fractions-1');
     };
 
     const handleClose = (event: any) => {
       // Connection state handled by context
-      console.log('Disconnected from Gemini Live', event);
-      console.log('Close event details:', {
-        code: event.code,
-        reason: event.reason,
-        wasClean: event.wasClean
-      });
       
       // If it wasn't a manual disconnect, try to reconnect
       if (!isManualDisconnect && selectedLesson) {
-        console.log('Unexpected disconnect detected, attempting to reconnect...');
         setTimeout(() => {
           if (!connected && !isManualDisconnect) {
             console.log('Attempting automatic reconnection...');
@@ -243,7 +235,6 @@ function SimiliApp() {
   };
 
   const handleCanvasChange = (imageData: string) => {
-    console.log('Canvas change detected, image data length:', imageData.length);
     setCanvasImageData(imageData);
   };
 

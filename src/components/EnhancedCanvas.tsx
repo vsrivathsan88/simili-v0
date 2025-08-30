@@ -80,7 +80,6 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
       if (onCanvasChange) {
         const imageData = canvas.toDataURL('image/jpeg', 0.8);
         onCanvasChange(imageData);
-        console.log('Initial blank canvas sent to Pi');
       }
     }, 100);
   }, [width, height, onCanvasChange]);
@@ -274,7 +273,6 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
           if (canvas && onCanvasChange) {
             const imageData = canvas.toDataURL('image/jpeg', 0.8);
             onCanvasChange(imageData);
-            console.log('Canvas updated and sent to Pi');
           }
         }, 50); // Small delay to ensure stroke is fully rendered
         
@@ -304,7 +302,6 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
           if (canvas && onCanvasChange) {
             const imageData = canvas.toDataURL('image/jpeg', 0.8);
             onCanvasChange(imageData);
-            console.log('Canvas text updated and sent to Pi');
           }
         }, 50);
         
