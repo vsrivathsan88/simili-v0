@@ -18,18 +18,14 @@ const LessonTransition: React.FC<LessonTransitionProps> = ({
   useEffect(() => {
     if (!isActive) return;
     
-    console.log('LessonTransition started for:', lessonTitle);
 
     const timer1 = setTimeout(() => {
-      console.log('Transition stage: speaking');
       setStage('speaking');
     }, 800);
     const timer2 = setTimeout(() => {
-      console.log('Transition stage: transitioning');
       setStage('transitioning');
     }, 2800);
     const timer3 = setTimeout(() => {
-      console.log('Transition stage: complete, calling onComplete');
       setStage('complete');
       onComplete();
     }, 3500);

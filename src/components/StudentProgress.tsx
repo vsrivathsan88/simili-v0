@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import './StudentProgress.scss';
 import { sessionRecorder } from '../lib/sessionRecorder';
 
@@ -20,18 +20,16 @@ interface ProgressData {
 }
 
 const StudentProgress: React.FC = () => {
+  // 1. STATE HOOKS
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
 
-  useEffect(() => {
-    // Load all sessions from localStorage
-    const sessions = sessionRecorder.getAllSessions();
-    
-    // Process sessions to extract progress data
-    const data = processSessionsForProgress(sessions);
-    setProgressData(data);
+  // 2. MEMOIZED CALLBACKS
+  const calculateMastery = useCallback((concepts: string[], frequency: { [key: string]: number }): number => {
+    const totalPractice = concepts.reduce((sum, c) => sum + (frequency[c] || 0), 0);
+    return Math.min(100, Math.round((totalPractice / concepts.length) * 20));
   }, []);
 
-  const processSessionsForProgress = (sessions: any[]): ProgressData => {
+  const processSessionsForProgress = useCallback((sessions: any[]): ProgressData => {
     const conceptFrequency: { [key: string]: number } = {};
     const misconceptionFrequency: { [key: string]: number } = {};
     const recentActivity: any[] = [];
@@ -106,13 +104,19 @@ const StudentProgress: React.FC = () => {
       recentActivity,
       masteryByUnit
     };
-  };
+  }, [calculateMastery]);
 
-  const calculateMastery = (concepts: string[], frequency: { [key: string]: number }): number => {
-    const totalPractice = concepts.reduce((sum, c) => sum + (frequency[c] || 0), 0);
-    return Math.min(100, Math.round((totalPractice / concepts.length) * 20));
-  };
+  // 3. EFFECT HOOKS
+  useEffect(() => {
+    // Load all sessions from localStorage
+    const sessions = sessionRecorder.getAllSessions();
+    
+    // Process sessions to extract progress data
+    const data = processSessionsForProgress(sessions);
+    setProgressData(data);
+  }, [processSessionsForProgress]);
 
+  // 4. RETURN STATEMENT
   if (!progressData) {
     return <div className="student-progress loading">Loading progress...</div>;
   }

@@ -41,39 +41,8 @@ const UnifiedCanvas: React.FC<UnifiedCanvasProps> = ({
 }) => {
   const [manipulatives, setManipulatives] = useState<Manipulative[]>([]);
   const [isDragging, setIsDragging] = useState<string | null>(null);
-  const [textInput, setTextInput] = useState<{ x: number; y: number; text: string } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [clearTrigger, setClearTrigger] = useState(0);
 
-  const handleClear = () => {
-    setManipulatives([]);
-    // Clear the canvas by triggering a state change
-    setClearTrigger(prev => prev + 1);
-    if (onClear) onClear();
-  };
-
-  const addManipulative = (type: Manipulative['type']) => {
-    const newManipulative: Manipulative = {
-      id: `${type}-${Date.now()}`,
-      type,
-      x: 100,
-      y: 100,
-      data: type === 'fraction-bar' 
-        ? { parts: 4, shaded: 1 }
-        : type === 'number-line'
-        ? { min: 0, max: 10, marks: [] }
-        : type === 'area-model'
-        ? { rows: 3, cols: 4, selectedCells: Array(3).fill(null).map(() => Array(4).fill(false)) }
-        : type === 'array-grid'
-        ? { rows: 3, cols: 4, showGrouping: false }
-        : type === 'fraction-circles'
-        ? { parts: 4, shaded: 1 }
-        : { length: 10, markers: [] } // visual-number-line
-    };
-    setManipulatives(prev => [...prev, newManipulative]);
-    if (onAddManipulative) onAddManipulative(type);
-  };
 
   const updateManipulative = (id: string, data: any) => {
     setManipulatives(prev => prev.map(m => 
@@ -120,7 +89,6 @@ const UnifiedCanvas: React.FC<UnifiedCanvasProps> = ({
           currentTool={currentTool}
           currentColor={currentColor}
           strokeWidth={currentTool === 'pencil' ? 2 : 20}
-          key={clearTrigger} // Force re-render to clear canvas
         />
       </div>
 

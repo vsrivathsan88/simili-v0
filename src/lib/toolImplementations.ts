@@ -1,6 +1,7 @@
 import { FunctionCall } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 import { designSystem } from '../config/designSystem';
+import { SlideAdvancementMonitor, validateAdvancementCriteria } from './slideAdvancementTesting';
 
 // Types for our tool responses
 export interface ReasoningStep {
@@ -11,6 +12,11 @@ export interface ReasoningStep {
   concepts: string[];
   confidence: number;
   canvasSnapshot?: string;
+  slideContext?: {
+    slideNumber: number;
+    slideName: string;
+    lessonId: string;
+  };
 }
 
 export interface Misconception {
@@ -19,6 +25,11 @@ export interface Misconception {
   type: 'unequal_parts' | 'counting_not_measuring' | 'whole_unclear';
   evidence: string;
   severity: 'minor' | 'major';
+  slideContext?: {
+    slideNumber: number;
+    slideName: string;
+    lessonId: string;
+  };
 }
 
 export interface CanvasAnnotation {
@@ -29,25 +40,62 @@ export interface CanvasAnnotation {
   message?: string;
 }
 
+export interface SlideAdvancement {
+  id: string;
+  timestamp: number;
+  currentSlide: number;
+  nextSlide: number;
+  masteryEvidence: string;
+}
+
+// Current lesson context (will be set by the main app)
+export const currentLessonContext = {
+  lessonId: '',
+  currentSlideNumber: 1,
+  currentSlideName: '',
+  setLessonContext: (lessonId: string, slideNumber: number, slideName: string) => {
+    currentLessonContext.lessonId = lessonId;
+    currentLessonContext.currentSlideNumber = slideNumber;
+    currentLessonContext.currentSlideName = slideName;
+  }
+};
+
 // Store for session data
 export const sessionStore = {
   reasoningSteps: [] as ReasoningStep[],
   misconceptions: [] as Misconception[],
   annotations: [] as CanvasAnnotation[],
-  celebrations: [] as any[]
+  celebrations: [] as any[],
+  slideAdvancements: [] as SlideAdvancement[]
 };
 
 // Tool implementation functions
 export const toolImplementations = {
   mark_reasoning_step: async (params: any) => {
+    const monitor = SlideAdvancementMonitor.getInstance();
+    
     const step: ReasoningStep = {
       id: uuidv4(),
       timestamp: Date.now(),
       transcript: params.transcript,
       classification: params.classification,
       concepts: params.concepts,
-      confidence: params.confidence
+      confidence: params.confidence,
+      slideContext: currentLessonContext.lessonId ? {
+        slideNumber: currentLessonContext.currentSlideNumber,
+        slideName: currentLessonContext.currentSlideName,
+        lessonId: currentLessonContext.lessonId
+      } : undefined
     };
+    
+    // Log student response for monitoring
+    if (step.slideContext) {
+      monitor.logStudentResponse(
+        step.slideContext.slideNumber,
+        step.transcript,
+        step.classification
+      );
+    }
     
     // Add to session store
     sessionStore.reasoningSteps.push(step);
@@ -69,7 +117,12 @@ export const toolImplementations = {
       timestamp: Date.now(),
       type: params.type,
       evidence: params.evidence,
-      severity: params.severity
+      severity: params.severity,
+      slideContext: currentLessonContext.lessonId ? {
+        slideNumber: currentLessonContext.currentSlideNumber,
+        slideName: currentLessonContext.currentSlideName,
+        lessonId: currentLessonContext.lessonId
+      } : undefined
     };
     
     // Add to session store
@@ -145,6 +198,80 @@ export const toolImplementations = {
     window.dispatchEvent(new CustomEvent('canvas-annotation', { detail: annotation }));
     
     return { success: true, annotationId: annotation.id };
+  },
+  
+  advance_slide: async (params: any) => {
+    const monitor = SlideAdvancementMonitor.getInstance();
+    const currentSlide = params.current_slide;
+    const nextSlide = params.next_slide;
+    const masteryEvidence = params.mastery_evidence;
+    
+    // Validate advancement criteria
+    const validation = validateAdvancementCriteria(currentSlide, masteryEvidence);
+    
+    // Log AI decision for debugging
+    monitor.logAIDecision(
+      currentSlide,
+      `Request advance to slide ${nextSlide}`,
+      validation.evidence,
+      `Confidence: ${validation.confidence}, Missing: ${validation.missingElements.join(', ')}`
+    );
+    
+    const advancement: SlideAdvancement = {
+      id: uuidv4(),
+      timestamp: Date.now(),
+      currentSlide,
+      nextSlide,
+      masteryEvidence
+    };
+    
+    console.log(`🚀 AI requesting slide advance: ${currentSlide} -> ${nextSlide}`);
+    console.log(`📋 Evidence: ${masteryEvidence}`);
+    console.log(`🔍 Validation:`, validation);
+    
+    // Behavioral validation warnings
+    if (!validation.shouldAdvance) {
+      console.warn(`⚠️  Advancement may be premature. Missing: ${validation.missingElements.join(', ')}`);
+      console.warn(`🤖 AI should collect more evidence before advancing`);
+    }
+    
+    if (validation.confidence < 0.5) {
+      console.warn(`⚠️  Low confidence advancement (${Math.round(validation.confidence * 100)}%)`);
+    }
+    
+    // Log the tool call
+    monitor.logToolCall(currentSlide, 'advance_slide', params, { validation });
+    
+    // Add to session store for analytics
+    sessionStore.slideAdvancements.push(advancement);
+    
+    // Log advancement attempt
+    monitor.logAdvancement(currentSlide, nextSlide, masteryEvidence, true);
+    
+    // Dispatch custom event to trigger slide advancement in UI
+    window.dispatchEvent(new CustomEvent('advance-slide', {
+      detail: {
+        id: advancement.id,
+        currentSlide,
+        nextSlide,
+        masteryEvidence,
+        timestamp: advancement.timestamp,
+        validation
+      }
+    }));
+    
+    // Success response to AI (always succeeds, but with validation feedback)
+    return { 
+      success: true, 
+      advancementId: advancement.id,
+      message: `Advanced from slide ${currentSlide} to slide ${nextSlide}`,
+      nextSlide,
+      validation: {
+        confidence: validation.confidence,
+        evidenceStrength: validation.evidence.length,
+        recommendedAction: validation.shouldAdvance ? 'proceed' : 'collect_more_evidence'
+      }
+    };
   }
 };
 

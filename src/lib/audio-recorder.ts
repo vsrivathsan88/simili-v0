@@ -64,10 +64,7 @@ export class AudioRecorder extends EventEmitter {
         await this.audioContext.audioWorklet.addModule('/audio-recorder-worklet.js');
         console.log('AudioRecorder: Added worklet module');
         
-        this.recordingWorklet = new AudioWorkletNode(
-          this.audioContext,
-          workletName,
-        );
+        this.recordingWorklet = await this.createWorkletNodeWithRetry(workletName, 5, 50);
         console.log('AudioRecorder: Created AudioWorkletNode');
 
       this.recordingWorklet.port.onmessage = async (ev: MessageEvent) => {
@@ -100,6 +97,39 @@ export class AudioRecorder extends EventEmitter {
     });
     
     return this.starting;
+  }
+
+  /**
+   * Attempts to create an AudioWorkletNode, retrying if the processor is not yet registered.
+   * @param name The name of the worklet processor.
+   * @param maxRetries The maximum number of times to retry.
+   * @param retryDelay The base delay in ms between retries.
+   * @returns A promise that resolves with the AudioWorkletNode.
+   */
+  private async createWorkletNodeWithRetry(
+    name: string, 
+    maxRetries: number, 
+    retryDelay: number
+  ): Promise<AudioWorkletNode> {
+    let attempts = 0;
+    while (attempts < maxRetries) {
+      try {
+        // Attempt to create the node
+        return new AudioWorkletNode(this.audioContext!, name);
+      } catch (error) {
+        attempts++;
+        if (attempts >= maxRetries) {
+          // If we've exhausted retries, throw the last error
+          throw error;
+        }
+        // Log the attempt and wait before trying again
+        console.log(`Worklet '${name}' not ready, retrying... (${attempts}/${maxRetries})`);
+        const currentAttempts = attempts;
+        await new Promise(resolve => setTimeout(resolve, retryDelay * currentAttempts)); // Exponential backoff
+      }
+    }
+    // This line should be unreachable, but typescript needs it
+    throw new Error(`Failed to create worklet node '${name}'`);
   }
 
   stop() {

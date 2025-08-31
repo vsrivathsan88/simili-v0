@@ -1,0 +1,175 @@
+[
+  {
+    "id": 1,
+    "slide_number": 1,
+    "name": "Intro_Hello",
+    "state_trigger": "START_SESSION_GREETING",
+    "keywords": ["hello", "greeting", "start", "ready", "begin"],
+    "prerequisites": [],
+    "description": "Welcome slide to engage student and confirm readiness",
+    "ai_focus": {
+      "eliciting_questions": "Hi there! I'm Pi, and I'm super excited to explore fractions with you today! Are you ready to discover some really cool patterns?",
+      "potential_misconceptions": "N/A",
+      "goal": "Establish rapport and confirm student engagement",
+      "initial_prompt_strategy": "Warm greeting with enthusiasm for the topic",
+      "expected_student_response_pattern": "Positive confirmation like 'yes', 'ready', 'let's go'"
+    },
+    "use_cases": ["Session opener", "Engagement check", "Rapport building"],
+    "advance_to_next_slide_criteria": "Student expresses readiness to start (says yes, ready, let's go, or similar positive response)"
+  },
+  {
+    "id": 2,
+    "slide_number": 2,
+    "name": "RealWorld_CandyBar_Observe",
+    "state_trigger": "OBSERVE_REAL_WORLD_EXAMPLE_HALVES",
+    "keywords": ["candy bar", "breaking", "two pieces", "equal", "halves", "sharing"],
+    "prerequisites": ["Basic observation skills"],
+    "description": "Image of a hand breaking a candy bar into two equal pieces",
+    "image_path": "/assets/candy-bar-breaking.png",
+    "ai_focus": {
+      "eliciting_questions": "Let's start with this picture. What do you notice happening here?",
+      "potential_misconceptions": "Focusing only on candy/hand, not the breaking action or equal pieces",
+      "guidance_prompts": [
+        {
+          "condition": "Student mentions candy but not breaking",
+          "prompt_text": "Yes, I see the candy too! Tell me about what's happening to the candy bar."
+        },
+        {
+          "condition": "Student mentions breaking but not equal pieces", 
+          "prompt_text": "Great observation about the breaking! What do you notice about the size of those two pieces?"
+        }
+      ],
+      "goal": "Student identifies that candy bar is being broken into two equal pieces",
+      "expected_student_response_pattern": "Mentions both 'two pieces' AND 'equal/same size'"
+    },
+    "use_cases": ["Real-world introduction", "Foundation for 1/2 concept", "Visual observation"],
+    "advance_to_next_slide_criteria": "Student identifies the candy bar has been broken into two equal pieces"
+  },
+  {
+    "id": 3,
+    "slide_number": 3,
+    "name": "RealWorld_Building_Count",
+    "state_trigger": "OBSERVE_BUILDING_SECTIONS",
+    "keywords": ["building", "floors", "sections", "six", "blue", "counting"],
+    "prerequisites": ["Counting to 10", "Color recognition"],
+    "description": "Image of a building with 6 sections/floors, where 1 section is blue",
+    "image_path": "/assets/building-blue-section.png",
+    "ai_focus": {
+      "eliciting_questions": "Now let's look at this building. What details stand out to you?",
+      "potential_misconceptions": [
+        "Counting windows instead of floor sections",
+        "Not noticing the blue section",
+        "Incorrect total count"
+      ],
+      "guidance_prompts": [
+        {
+          "condition": "Student mentions building but doesn't count",
+          "prompt_text": "Yes, it's a tall building! How would you describe the different sections or levels?"
+        },
+        {
+          "condition": "Student counts but misses blue section",
+          "prompt_text": "Nice counting! Now tell me about the colors you see."
+        },
+        {
+          "condition": "Student gets wrong total count",
+          "prompt_text": "Let's count together carefully. Can you point to each section as we count?"
+        }
+      ],
+      "goal": "Student counts 6 total sections and identifies 1 blue section",
+      "expected_student_response_pattern": "States total of 6 sections/floors AND mentions 1 blue section"
+    },
+    "use_cases": ["Counting practice", "Part-whole relationship", "Visual discrimination"],
+    "advance_to_next_slide_criteria": "Student identifies the building has 6 total sections/floors and notes that one section is blue"
+  },
+  {
+    "id": 4,
+    "slide_number": 4,
+    "name": "Building_Fraction_Notation",
+    "state_trigger": "CONNECT_VISUAL_TO_NOTATION",
+    "keywords": ["fraction", "one-sixth", "1/6", "part", "whole", "notation"],
+    "prerequisites": ["Understanding of 6 total sections, 1 blue section"],
+    "description": "Same building image with fraction notation 1/6 showing the relationship",
+    "image_path": "/assets/building-with-fraction.png",
+    "ai_focus": {
+      "eliciting_questions": "So we have 1 blue section out of 6 total sections. Mathematicians have a special way to write this relationship. What do you think 1/6 means?",
+      "potential_misconceptions": [
+        "Confusing numerator and denominator roles",
+        "Thinking it means 1 + 6 or 1 - 6",
+        "Not connecting to the visual"
+      ],
+      "guidance_prompts": [
+        {
+          "condition": "Student unsure about notation",
+          "prompt_text": "The bottom number (6) tells us how many total sections there are. The top number (1) tells us how many are blue. Does that make sense?"
+        },
+        {
+          "condition": "Student confuses top/bottom numbers",
+          "prompt_text": "Let's think about this step by step. How many sections are blue? How many sections in total?"
+        }
+      ],
+      "goal": "Student connects visual to fraction notation and understands 1 = blue part, 6 = total parts",
+      "expected_student_response_pattern": "Shows understanding that 1 represents the blue section and 6 represents total sections"
+    },
+    "use_cases": ["Fraction notation introduction", "Part-whole connection", "Mathematical representation"],
+    "advance_to_next_slide_criteria": "Student demonstrates understanding that 1 represents the blue section and 6 represents the total sections (connecting visual to notation)"
+  },
+  {
+    "id": 5,
+    "slide_number": 5,
+    "name": "Cake_Equal_Parts_Explore",
+    "state_trigger": "PRACTICE_EQUAL_PARTS_CONCEPT",
+    "keywords": ["cake", "equal parts", "sharing", "fair", "slices"],
+    "prerequisites": ["Understanding of equal parts concept"],
+    "description": "Image of a round cake with one slice missing, showing equal divisions",
+    "image_path": "/assets/cake-missing-slice.png",
+    "ai_focus": {
+      "eliciting_questions": "Here's a cake that someone started sharing. What do you notice about how it was cut?",
+      "potential_misconceptions": [
+        "Focusing only on missing slice, not equal divisions",
+        "Not recognizing equal parts",
+        "Counting wrong number of total parts"
+      ],
+      "guidance_prompts": [
+        {
+          "condition": "Student mentions missing slice but not equal parts",
+          "prompt_text": "Yes, there's a missing slice! What do you notice about the size of all the slices?"
+        },
+        {
+          "condition": "Student doesn't see equal divisions",
+          "prompt_text": "Look carefully at each slice. Are they all the same size, or are some bigger than others?"
+        }
+      ],
+      "goal": "Student recognizes cake was cut into equal parts for fair sharing",
+      "expected_student_response_pattern": "Identifies that cake is cut into equal-sized slices/parts"
+    },
+    "use_cases": ["Equal parts reinforcement", "Fair sharing concept", "Real-world application"],
+    "advance_to_next_slide_criteria": "Student recognizes that the cake was cut into equal parts or equal-sized slices"
+  },
+  {
+    "id": 6,
+    "slide_number": 6,
+    "name": "Pattern_Summary_Celebration",
+    "state_trigger": "CELEBRATE_PATTERN_DISCOVERY",
+    "keywords": ["pattern", "fractions", "parts", "wholes", "discovery", "celebration"],
+    "prerequisites": ["Understanding from previous slides"],
+    "description": "Montage image showing candy bar, building, and cake with their fraction representations",
+    "image_path": "/assets/pattern-summary-montage.png",
+    "ai_focus": {
+      "eliciting_questions": "Wow, look at all these examples together! What pattern do you see in the candy bar, building, and cake?",
+      "potential_misconceptions": [
+        "Not seeing the common pattern",
+        "Focusing on differences rather than similarities"
+      ],
+      "guidance_prompts": [
+        {
+          "condition": "Student doesn't see pattern",
+          "prompt_text": "In each picture, we're looking at parts of something whole. The candy bar has parts, the building has parts, and the cake has parts. What's the same about how we think about all of them?"
+        }
+      ],
+      "goal": "Student recognizes the common pattern of parts and wholes across all examples",
+      "expected_student_response_pattern": "Identifies that all examples show parts of a whole or equal parts"
+    },
+    "use_cases": ["Pattern recognition", "Concept consolidation", "Achievement celebration"],
+    "advance_to_next_slide_criteria": "Student identifies the common pattern that all examples show parts of a whole or demonstrates understanding of the fraction concept across different contexts"
+  }
+]

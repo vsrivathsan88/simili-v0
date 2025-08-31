@@ -1,0 +1,73 @@
+@import '../config/variables';
+
+.slide-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transition: opacity 0.3s ease;
+  
+  &.transitioning {
+    opacity: 0.7;
+  }
+}
+
+/* === DEVELOPMENT NAVIGATION === */
+.slide-dev-nav {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 12px;
+  z-index: 10000;
+  max-width: 250px;
+  backdrop-filter: blur(10px);
+  
+  .dev-nav-header {
+    margin-bottom: 8px;
+    font-weight: bold;
+    border-bottom: 1px solid #444;
+    padding-bottom: 4px;
+  }
+  
+  .dev-nav-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+  
+  .dev-nav-btn {
+    background: #333;
+    color: white;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background: #555;
+    }
+    
+    &.active {
+      background: #4A90E2;
+      border-color: #4A90E2;
+    }
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+  
+  .dev-nav-info {
+    font-size: 10px;
+    opacity: 0.7;
+    line-height: 1.3;
+  }
+}
