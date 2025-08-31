@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { sessionStore } from '../lib/toolImplementations';
 import './ToolCallFeedback.scss';
 
 export function ToolCallFeedback() {

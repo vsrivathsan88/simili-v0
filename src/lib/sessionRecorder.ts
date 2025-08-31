@@ -1,5 +1,3 @@
-import { sessionStore } from './toolImplementations';
-
 export interface SessionEvent {
   type: 'tool_call' | 'canvas_change' | 'audio_start' | 'audio_stop';
   timestamp: number;

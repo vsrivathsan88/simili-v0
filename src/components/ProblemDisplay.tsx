@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import './ProblemDisplay.scss';
 import { SketchyButton } from './ui/SketchyButton';
 import { VisualProblem, getStartingProblem, getNextProblem } from '../data/adaptiveProblems';
@@ -10,66 +10,14 @@ interface ProblemDisplayProps {
 }
 
 const ProblemDisplay: React.FC<ProblemDisplayProps> = ({ onImageUpload, lessonId, onProblemChange }) => {
+  // 1. STATE HOOKS
   const [problemImage, setProblemImage] = useState<string | null>(null);
   const [currentProblem, setCurrentProblem] = useState<VisualProblem | null>(null);
   const [attemptCount, setAttemptCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (lessonId) {
-      const problem = getStartingProblem(lessonId);
-      if (problem) {
-        console.log(JSON.stringify(problem, null, 2));
-        
-        setCurrentProblem(problem);
-        setAttemptCount(0);
-        createProblemImage(problem);
-        if (onProblemChange) {
-          onProblemChange(problem);
-        }
-      }
-    }
-  }, [lessonId, onProblemChange]);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const imageData = event.target?.result as string;
-      setProblemImage(imageData);
-      onImageUpload(imageData);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const imageData = event.target?.result as string;
-        setProblemImage(imageData);
-        onImageUpload(imageData);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const triggerFileSelect = () => {
-    fileInputRef.current?.click();
-  };
-
-  const createProblemImage = (problem: VisualProblem) => {
+  // 2. MEMOIZED CALLBACKS
+  const createProblemImage = useCallback((problem: VisualProblem) => {
     const canvas = document.createElement('canvas');
     canvas.width = 400;
     canvas.height = 300;
@@ -92,9 +40,47 @@ const ProblemDisplay: React.FC<ProblemDisplayProps> = ({ onImageUpload, lessonId
     const imageData = canvas.toDataURL();
     setProblemImage(imageData);
     onImageUpload(imageData);
-  };
+  }, [onImageUpload]);
 
-  const loadNextProblem = (wasSuccessful: boolean = true) => {
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imageData = event.target?.result as string;
+      setProblemImage(imageData);
+      onImageUpload(imageData);
+    };
+    reader.readAsDataURL(file);
+  }, [onImageUpload]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageData = event.target?.result as string;
+        setProblemImage(imageData);
+        onImageUpload(imageData);
+      };
+      reader.readAsDataURL(file);
+    }
+  }, [onImageUpload]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const triggerFileSelect = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const loadNextProblem = useCallback((wasSuccessful: boolean = true) => {
     if (currentProblem) {
       const nextProblem = getNextProblem(currentProblem.id, wasSuccessful, attemptCount);
       if (nextProblem) {
@@ -106,8 +92,26 @@ const ProblemDisplay: React.FC<ProblemDisplayProps> = ({ onImageUpload, lessonId
         }
       }
     }
-  };
+  }, [currentProblem, attemptCount, createProblemImage, onProblemChange]);
 
+  // 3. EFFECT HOOKS
+  useEffect(() => {
+    if (lessonId) {
+      const problem = getStartingProblem(lessonId);
+      if (problem) {
+        console.log(JSON.stringify(problem, null, 2));
+        
+        setCurrentProblem(problem);
+        setAttemptCount(0);
+        createProblemImage(problem);
+        if (onProblemChange) {
+          onProblemChange(problem);
+        }
+      }
+    }
+  }, [lessonId, onProblemChange, createProblemImage]);
+
+  // 4. RETURN STATEMENT
   return (
     <div className="problem-display">
       {!problemImage ? (

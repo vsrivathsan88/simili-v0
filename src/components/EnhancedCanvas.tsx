@@ -1,6 +1,42 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import './EnhancedCanvas.scss';
 
+// Pure helper function outside component to avoid dependency cycles
+const drawBackground = (ctx: CanvasRenderingContext2D, width: number, height: number, background: string) => {
+  // Fill with paper color
+  ctx.fillStyle = '#FFFEF7';
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.strokeStyle = '#E5E7EB';
+  ctx.lineWidth = 1;
+
+  if (background === 'graph') {
+    // Draw grid
+    const gridSize = 20;
+    for (let x = 0; x <= width; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= height; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+  } else if (background === 'ruled') {
+    // Draw horizontal lines
+    const lineSpacing = 25;
+    for (let y = lineSpacing; y <= height; y += lineSpacing) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+  }
+};
+
 interface Point {
   x: number;
   y: number;
@@ -73,7 +109,7 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
     canvas.height = height * dpr;
     context.scale(dpr, dpr);
     
-    redrawCanvas();
+    // redrawCanvas will be called after this effect completes
     
     // Send initial blank canvas
     setTimeout(() => {
@@ -94,7 +130,7 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
     context.clearRect(0, 0, width, height);
 
     // Draw background
-    drawBackground(context);
+    drawBackground(context, width, height, background);
 
     // Redraw all strokes
     strokes.forEach(stroke => {
@@ -118,40 +154,6 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
   }, [redrawCanvas]);
 
 
-  const drawBackground = (ctx: CanvasRenderingContext2D) => {
-    // Fill with paper color
-    ctx.fillStyle = '#FFFEF7';
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.strokeStyle = '#E5E7EB';
-    ctx.lineWidth = 1;
-
-    if (background === 'graph') {
-      // Draw grid
-      const gridSize = 20;
-      for (let x = 0; x <= width; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-      }
-      for (let y = 0; y <= height; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-      }
-    } else if (background === 'ruled') {
-      // Draw horizontal lines
-      const lineSpacing = 25;
-      for (let y = lineSpacing; y <= height; y += lineSpacing) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-      }
-    }
-  };
 
   const drawStroke = (ctx: CanvasRenderingContext2D, stroke: Stroke) => {
     if (stroke.points.length < 2) return;

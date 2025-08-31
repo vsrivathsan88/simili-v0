@@ -7,7 +7,8 @@
       "Bash(npx tsc:*)",
       "Bash(npm start)",
       "Bash(mv:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

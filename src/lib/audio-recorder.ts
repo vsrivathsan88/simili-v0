@@ -124,7 +124,8 @@ export class AudioRecorder extends EventEmitter {
         }
         // Log the attempt and wait before trying again
         console.log(`Worklet '${name}' not ready, retrying... (${attempts}/${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, retryDelay * attempts)); // Exponential backoff
+        const currentAttempts = attempts;
+        await new Promise(resolve => setTimeout(resolve, retryDelay * currentAttempts)); // Exponential backoff
       }
     }
     // This line should be unreachable, but typescript needs it

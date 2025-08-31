@@ -5,10 +5,9 @@ import { AudioRecorder } from '../lib/audio-recorder';
 export function VoiceInput() {
   const { client, connected } = useLiveAPIContext();
   const [audioRecorder] = useState(() => new AudioRecorder(16000)); // 16kHz for Gemini Live
-  const [volume, setVolume] = useState(0);
 
-  const onVolume = useCallback((vol: number) => {
-    setVolume(vol);
+  const onVolume = useCallback((_vol: number) => {
+    // Volume monitoring (no UI needed in ambient mode)
   }, []);
 
   useEffect(() => {
@@ -42,7 +41,7 @@ export function VoiceInput() {
         .off("volume", onVolume)
         .stop();
     };
-  }, [connected, client, audioRecorder]);
+  }, [connected, client, audioRecorder, onVolume]);
 
   if (!connected) return null;
 

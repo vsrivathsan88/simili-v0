@@ -28,6 +28,103 @@
   margin: 0 auto;
 }
 
+// Lesson interface layout
+.lesson-interface {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.lesson-sidebar {
+  width: 320px;
+  min-width: 320px;
+  background: #f8f9fa;
+  border-right: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  
+  .problem-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .connection-status {
+    margin-bottom: 1rem;
+    
+    .status-connected {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #28a745;
+      font-weight: 500;
+      
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #28a745;
+        animation: pulse 2s infinite;
+      }
+    }
+    
+    .status-disconnected {
+      color: #6c757d;
+      font-weight: 500;
+    }
+  }
+  
+  .lesson-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: auto;
+    
+    button {
+      padding: 0.75rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      
+      &.teacher-toggle-btn {
+        background: #e3f2fd;
+        color: #1976d2;
+        
+        &:hover {
+          background: #bbdefb;
+        }
+      }
+      
+      &.disconnect-btn {
+        background: #ffebee;
+        color: #d32f2f;
+        
+        &:hover {
+          background: #ffcdd2;
+        }
+      }
+    }
+  }
+}
+
+.canvas-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: white;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 .simili-welcome {
   text-align: center;
   padding: var(--spacing-xl) 0;
