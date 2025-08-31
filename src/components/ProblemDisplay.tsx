@@ -19,6 +19,8 @@ const ProblemDisplay: React.FC<ProblemDisplayProps> = ({ onImageUpload, lessonId
     if (lessonId) {
       const problem = getStartingProblem(lessonId);
       if (problem) {
+        console.log(JSON.stringify(problem, null, 2));
+        
         setCurrentProblem(problem);
         setAttemptCount(0);
         createProblemImage(problem);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { LiveAPIProvider } from './contexts/LiveAPIContext';
 import { useLiveAPIContext } from './contexts/LiveAPIContext';
 import { PI_SYSTEM_INSTRUCTION, piToolDeclarations } from './config/piTutor';
@@ -234,9 +234,9 @@ function SimiliApp() {
     console.log('Returned to lesson selection');
   };
 
-  const handleCanvasChange = (imageData: string) => {
+  const handleCanvasChange = useCallback((imageData: string) => {
     setCanvasImageData(imageData);
-  };
+  }, []);
 
   // Use effect to sync debounced canvas data
   useEffect(() => {
