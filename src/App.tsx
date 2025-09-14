@@ -5,7 +5,6 @@ import { PI_SYSTEM_INSTRUCTION, piToolDeclarations } from './config/piTutor';
 import { designSystem } from './config/designSystem';
 import { VoiceInput } from './components/VoiceInput';
 import UnifiedCanvas from './components/UnifiedCanvas';
-import ProblemDisplay from './components/ProblemDisplay';
 import TeacherPanel from './components/TeacherPanel';
 import VoicePermissionModal from './components/VoicePermissionModal';
 import LessonHomepage from './components/LessonHomepage';
@@ -26,16 +25,14 @@ import { useThreeActStore } from './stores/threeActStore';
 import FloatingToolbar from './components/FloatingToolbar';
 import ActTransition from './components/ActTransition';
 import AudioOutput from './components/AudioOutput';
-import { piOrchestrator } from './lib/piOrchestrator';
-import { geminiOrchestrator } from './lib/geminiOrchestrator';
-import { ACT_PROMPTS } from './config/actPrompts';
 import { contextCards, ContextCardSystem } from './lib/contextCards';
 import { structuredOrchestrator } from './lib/orchestrator/structuredOrchestrator';
 import { systemMonitor } from './lib/monitoring/systemMonitor';
 import { reliabilityLayer } from './lib/reliability/reliabilityLayer';
 import DebugPanel from './components/DebugPanel';
 import ProblemNavigator from './components/ProblemNavigator';
-import { lessons, getProblem, getNextProblem } from './config/lessonStructure';
+import { lessons, getProblem } from './config/lessonStructure';
+import { useGeminiClientEvents } from './hooks/useGeminiClientEvents';
 import './App.scss';
 // Import the JPEG once you've saved it
 // import legoBlocksJpg from './assets/lego-blocks.jpg';
@@ -162,237 +159,7 @@ function SimiliApp() {
     }
   }, [visionService, problemImage, realtimeCanvas, client, connected]);
 
-  useEffect(() => {
-    if (!client) return;
-
-    // Set up event listeners
-    const handleOpen = () => {
-      console.log('Connected to Gemini Live');
-      // Update global state for monitoring
-      (window as any).geminiConnected = true;
-      
-      // Log connection event
-      systemMonitor.log({
-        type: 'info',
-        level: 'info',
-        message: 'Connected to Gemini Live',
-        data: { sessionId: 'pizza-fractions-1' }
-      });
-      
-      // Start session recording
-      sessionRecorder.startSession('pizza-fractions-1');
-      
-      // Send initial introduction only once per session
-      setTimeout(() => {
-        if (client && connected && !sessionState.hasIntroduced) {
-          // Add narrative context card based on current problem in lesson
-          if (selectedLesson) {
-            const currentProblem = getProblem(selectedLesson, currentProblemIndex);
-            if (currentProblem) {
-              contextCards.addCard(ContextCardSystem.getNarrativeCard(currentProblem.narrativeKey));
-              contextCards.addCard(ContextCardSystem.getActCard('act1'));
-              
-              // Add problem info card
-              contextCards.addCard({
-                id: 'problem-info',
-                type: 'problem_facts',
-                content: `Current Problem: "${currentProblem.title}" (${currentProblemIndex + 1} of ${lessons[selectedLesson].problems.length})`,
-                priority: 'medium'
-              });
-            }
-          }
-          
-          // Build initial context
-          const initialContext = contextCards.buildContextMessage(true);
-          
-          // Send initial message with narrative
-          client.send({
-            text: `${initialContext}
-
-[SESSION START]
-The student just connected. Share your STORY about the LEGO blocks (provided above) in an excited, friendly way!
-Then ask the follow-up question. Remember: You're not a teacher, you're a curious friend with a puzzle!`
-          });
-          
-          setSessionState(prev => ({ 
-            ...prev, 
-            hasIntroduced: true 
-          }));
-          
-          // Send the problem image immediately after connection
-          if (problemImage) {
-            console.log('Sending initial problem image to Pi');
-            // Create a blank canvas for initial state
-            const blankCanvas = document.createElement('canvas');
-            const ctx = blankCanvas.getContext('2d');
-            if (ctx) {
-              blankCanvas.width = window.innerWidth;
-              blankCanvas.height = window.innerHeight;
-              ctx.fillStyle = '#FFFEF7';
-              ctx.fillRect(0, 0, blankCanvas.width, blankCanvas.height);
-              const blankCanvasData = blankCanvas.toDataURL('image/jpeg', 0.8);
-              
-              // Send both problem and blank canvas with a delay
-              setTimeout(() => {
-                sendToVisionAPI(problemImage, blankCanvasData);
-              }, 500);
-            }
-          }
-        }
-      }, 1500); // Slightly longer delay for connection stability
-    };
-
-    const handleClose = (event: any) => {
-      // Connection state handled by context
-      console.log('Disconnected from Gemini Live', event);
-      console.log('Close event details:', {
-        code: event.code,
-        reason: event.reason,
-        wasClean: event.wasClean
-      });
-      
-      // Update global state for monitoring
-      (window as any).geminiConnected = false;
-      
-      // Log disconnection event
-      systemMonitor.log({
-        type: 'warning',
-        level: 'warning',
-        message: 'Disconnected from Gemini Live',
-        data: { 
-          code: event.code,
-          reason: event.reason,
-          wasClean: event.wasClean,
-          isManualDisconnect 
-        }
-      });
-      
-      // If it wasn't a manual disconnect, try to reconnect
-      if (!isManualDisconnect && selectedLesson) {
-        console.log('Unexpected disconnect detected, attempting to reconnect...');
-        setTimeout(() => {
-          if (!connected && !isManualDisconnect) {
-            console.log('Attempting automatic reconnection...');
-            connectWithRetry().catch(error => {
-              console.error('Auto-reconnection failed:', error);
-            });
-          }
-        }, 2000); // Wait 2 seconds before reconnecting
-      }
-    };
-    
-    const handleError = (error: any) => {
-      console.error('Gemini Live error:', error);
-    };
-    
-    const handleSetupComplete = () => {
-      console.log('Gemini Live setup complete');
-    };
-
-    const handleToolCallEvent = async (toolCall: any) => {
-      console.log('Tool call received:', toolCall);
-      
-      // Log tool call for monitoring
-      systemMonitor.log({
-        type: 'tool_call',
-        level: 'info',
-        message: `Tool calls received: ${toolCall.functionCalls?.length || 0}`,
-        data: toolCall
-      });
-      
-      // Handle multiple function calls
-      if (toolCall.functionCalls && toolCall.functionCalls.length > 0) {
-        const responses = [];
-        
-        for (const functionCall of toolCall.functionCalls) {
-          // Check for common errors before executing
-          const error = piOrchestrator.checkForCommonErrors(functionCall);
-          if (error) {
-            console.warn('Pi error detected:', error);
-            // Add correction card
-            contextCards.addCard(ContextCardSystem.getCorrectionCard(error));
-          }
-          
-          // Check for wrong answers being marked correct
-          if (functionCall.name === 'mark_reasoning_step' && 
-              functionCall.args?.classification === 'correct' &&
-              (functionCall.args?.transcript?.includes('2/4') || 
-               functionCall.args?.transcript?.includes('out of 4'))) {
-            contextCards.addCard(ContextCardSystem.getCorrectionCard(
-              'Student said 2/4 but there are 6 blocks total. The correct answer is 2/6 or 1/3.'
-            ));
-          }
-          
-          const result = await handleToolCall(functionCall);
-          
-          // Dispatch custom event for monitoring
-          window.dispatchEvent(new CustomEvent('toolcall', {
-            detail: {
-              name: functionCall.name,
-              args: functionCall.args,
-              result: result.response
-            }
-          }));
-          
-          if (result.response) {
-            responses.push({
-              id: functionCall.id,
-              name: functionCall.name,
-              response: result.response
-            });
-          }
-        }
-        
-        // Send all responses back to Gemini
-        if (responses.length > 0) {
-          client.sendToolResponse({
-            functionResponses: responses
-          });
-        }
-      }
-    };
-
-    client.on('open', handleOpen);
-    client.on('close', handleClose);
-    client.on('error', handleError);
-    client.on('setupcomplete', handleSetupComplete);
-    client.on('toolcall', handleToolCallEvent);
-    
-    // Listen for audio responses to validate them
-    const handleContentData = (content: any) => {
-      if (content.modelTurn?.parts) {
-        const parts = content.modelTurn.parts;
-        const transcript = parts.find((p: any) => p.text)?.text || '';
-        
-        if (transcript) {
-          // Post-response validation
-          reliabilityLayer.validateResponse(transcript, []);
-          
-          // Log response
-          systemMonitor.log({
-            type: 'info',
-            level: 'debug',
-            message: 'Pi response received',
-            data: { 
-              transcript: transcript.substring(0, 100) + '...',
-              length: transcript.length 
-            }
-          });
-        }
-      }
-    };
-    
-    client.on('content', handleContentData);
-
-    return () => {
-      client.off('open', handleOpen);
-      client.off('close', handleClose);
-      client.off('error', handleError);
-      client.off('setupcomplete', handleSetupComplete);
-      client.off('toolcall', handleToolCallEvent);
-      client.off('content', handleContentData);
-    };
-  }, [client]);
+  // Event wiring moved to useGeminiClientEvents
 
   const { connectWithRetry, reset } = useConnectionRetry(
     connect,
@@ -645,6 +412,20 @@ The student is viewing the LEGO blocks problem.`
       console.error('Error sending images to vision API:', error);
     }
   };
+
+  // Wire Gemini client events via hook
+  useGeminiClientEvents({
+    client,
+    connected,
+    selectedLesson,
+    currentProblemIndex,
+    isManualDisconnect,
+    connectWithRetry,
+    sendToVisionAPI,
+    problemImage,
+    sessionState,
+    setSessionState,
+  });
 
   const loadProblemImage = (imageFile: string) => {
     const imagePath = imageFile === 'lego-blocks.svg' 
@@ -1001,9 +782,9 @@ The student is viewing the LEGO blocks problem.`
                       onRemove={() => handleManipulativeRemove(manipulative.id)}
                     />
                   ))}
-                </div>
               </div>
-              
+            </div>
+
               {/* Floating Toolbar */}
               <FloatingToolbar
                 currentTool={currentTool}
