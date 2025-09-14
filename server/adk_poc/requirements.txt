@@ -1,0 +1,6 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+websockets==13.0
+python-dotenv==1.0.1
+# Placeholder for ADK deps; adjust as needed when wiring real agent
+# google-adk or equivalent libraries will be added during integration
