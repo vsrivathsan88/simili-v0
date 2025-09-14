@@ -436,7 +436,17 @@ The student is viewing the LEGO blocks problem.`
     currentProblemIndex,
     setCurrentProblemIndex: (i) => setCurrentProblemIndex(i),
     setProblemImage,
-    onClearCanvas: handleClear,
+    onClearCanvas: () => {
+      // Inline clear to avoid forward reference
+      setCanvasImageData('');
+      setPlacedManipulatives([]);
+      if (realtimeCanvas) {
+        realtimeCanvas.handleCanvasEvent({
+          type: 'clear',
+          timestamp: Date.now()
+        }, '');
+      }
+    },
     client,
     connected,
   });
@@ -515,6 +525,12 @@ The student is viewing the LEGO blocks problem.`
     console.log('Client exists:', !!client);
     console.log('Connected state:', connected);
     setShowLessonEntry(false);
+
+    // E2E mode: skip real connection
+    if (process.env.REACT_APP_E2E === 'true') {
+      console.log('[E2E] Skipping Gemini connection');
+      return;
+    }
     
     // Check mic permission and connect
     const hasPermission = await checkMicrophonePermission();
@@ -757,7 +773,7 @@ The student is viewing the LEGO blocks problem.`
 
 // App wrapper with LiveAPI provider
 function App() {
-  const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
+  const apiKey = process.env.REACT_APP_GEMINI_API_KEY || (process.env.REACT_APP_E2E === 'true' ? 'test_key' : undefined);
 
   if (!apiKey) {
     return (

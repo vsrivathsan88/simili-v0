@@ -20,7 +20,7 @@ module.exports = {
     },
   ],
   webServer: {
-    command: 'npm start',
+    command: 'REACT_APP_GEMINI_API_KEY=test_key REACT_APP_E2E=true npm start',
     port: 3000,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

@@ -65,7 +65,7 @@ const LessonHomepage: React.FC<LessonHomepageProps> = ({ onLessonSelect }) => {
   const otherLessons = lessons.filter(lesson => lesson.id !== currentLesson.id);
 
   return (
-    <div className="lesson-homepage">
+    <div className="lesson-homepage" data-testid="lesson-homepage">
       {/* Featured Lesson - 60% of viewport */}
       <div className="featured-lesson-section">
         <div className="featured-lesson-container">
