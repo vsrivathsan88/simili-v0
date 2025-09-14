@@ -33,6 +33,7 @@ import DebugPanel from './components/DebugPanel';
 import ProblemNavigator from './components/ProblemNavigator';
 import { lessons, getProblem } from './config/lessonStructure';
 import { useGeminiClientEvents } from './hooks/useGeminiClientEvents';
+import { useLessonManager } from './hooks/useLessonManager';
 import './App.scss';
 // Import the JPEG once you've saved it
 // import legoBlocksJpg from './assets/lego-blocks.jpg';
@@ -427,65 +428,22 @@ The student is viewing the LEGO blocks problem.`
     setSessionState,
   });
 
-  const loadProblemImage = (imageFile: string) => {
-    const imagePath = imageFile === 'lego-blocks.svg' 
-      ? '/assets/lego-blocks.svg'
-      : `/assets/problems/${imageFile}`;
-    
-    console.log('Loading problem image:', imagePath);
-    
-    fetch(imagePath)
-      .then(res => res.text())
-      .then(svgText => {
-        // Convert SVG to data URL
-        const blob = new Blob([svgText], { type: 'image/svg+xml' });
-        const url = URL.createObjectURL(blob);
-        
-        // Convert to image and then to JPEG data URL
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-            const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-            setProblemImage(jpegDataUrl);
-            console.log(`${problemType} image loaded and converted to JPEG`);
-          }
-          URL.revokeObjectURL(url);
-        };
-        img.src = url;
-      })
-      .catch(err => {
-        console.error(`Failed to load ${problemType} image:`, err);
-      });
-  };
+  // Lesson and problem management via hook
+  const { selectLesson, nextProblem, previousProblem, loadProblemImage } = useLessonManager({
+    selectedLesson,
+    setSelectedLesson: (id) => setSelectedLesson(id),
+    currentProblemIndex,
+    setCurrentProblemIndex: (i) => setCurrentProblemIndex(i),
+    setProblemImage,
+    onClearCanvas: handleClear,
+    client,
+    connected,
+  });
 
   const handleLessonSelect = (lessonId: string) => {
     console.log('Lesson selected:', lessonId);
-    
-    const lesson = lessons[lessonId];
-    if (!lesson) {
-      console.error('Lesson not found:', lessonId);
-      return;
-    }
-    
-    console.log('Found lesson:', lesson);
-    
-    // Reset to first problem
-    setCurrentProblemIndex(0);
-    
-    // Load the first problem image for this lesson
-    const firstProblem = lesson.problems[0];
-    if (firstProblem) {
-      loadProblemImage(firstProblem.imageFile);
-    }
-    
-    setSelectedLesson(lessonId);
+    const lesson = selectLesson(lessonId);
+    if (!lesson) return;
     setTransitionLesson(lesson.title);
     setShowTransition(true);
     setIsManualDisconnect(false);
@@ -587,60 +545,11 @@ The student is viewing the LEGO blocks problem.`
   
   // Problem navigation handlers
   const handleNextProblem = () => {
-    if (!selectedLesson) return;
-    
-    const lesson = lessons[selectedLesson];
-    if (currentProblemIndex < lesson.problems.length - 1) {
-      const nextIndex = currentProblemIndex + 1;
-      const nextProblem = lesson.problems[nextIndex];
-      
-      // Clear canvas for new problem
-      handleClear();
-      
-      // Load new problem image
-      loadProblemImage(nextProblem.imageFile);
-      
-      // Update problem index
-      setCurrentProblemIndex(nextIndex);
-      
-      // Reset to Act 1 for new problem
-      useThreeActStore.getState().setAct('act1');
-      
-      // Update context cards
-      contextCards.addCard(ContextCardSystem.getNarrativeCard(nextProblem.narrativeKey));
-      contextCards.addCard(ContextCardSystem.getActCard('act1'));
-      
-      // Notify Pi about new problem
-      if (client && connected) {
-        client.send({
-          text: `[NEW PROBLEM] Moving to problem ${nextIndex + 1}: "${nextProblem.title}". Share the new story!`
-        });
-      }
-    }
+    nextProblem();
   };
   
   const handlePreviousProblem = () => {
-    if (!selectedLesson || currentProblemIndex === 0) return;
-    
-    const lesson = lessons[selectedLesson];
-    const prevIndex = currentProblemIndex - 1;
-    const prevProblem = lesson.problems[prevIndex];
-    
-    // Clear canvas
-    handleClear();
-    
-    // Load previous problem image
-    loadProblemImage(prevProblem.imageFile);
-    
-    // Update problem index
-    setCurrentProblemIndex(prevIndex);
-    
-    // Reset to Act 1
-    useThreeActStore.getState().setAct('act1');
-    
-    // Update context cards
-    contextCards.addCard(ContextCardSystem.getNarrativeCard(prevProblem.narrativeKey));
-    contextCards.addCard(ContextCardSystem.getActCard('act1'));
+    previousProblem();
   };
   
   const handleFinishLesson = () => {
