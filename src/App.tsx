@@ -454,14 +454,14 @@ The student is viewing the LEGO blocks problem.`
             ctx.drawImage(img, 0, 0);
             const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.9);
             setProblemImage(jpegDataUrl);
-            console.log(`${problemType} image loaded and converted to JPEG`);
+            console.log(`${imageFile} loaded and converted to JPEG`);
           }
           URL.revokeObjectURL(url);
         };
         img.src = url;
       })
       .catch(err => {
-        console.error(`Failed to load ${problemType} image:`, err);
+        console.error(`Failed to load ${imageFile}:`, err);
       });
   };
 
@@ -742,6 +742,22 @@ The student is viewing the LEGO blocks problem.`
       {connected && <ToolCallFeedback />}
       <header className="simili-header">
         <h1 className="simili-title">Simili</h1>
+        {process.env.REACT_APP_USE_ADK === 'true' && (
+          <button
+            onClick={async () => {
+              const { AdkClient } = await import('./lib/adkClient');
+              const adk = new AdkClient();
+              adk.on((e) => console.log('[ADK]', e));
+              await adk.connect();
+              const rtt = await adk.ping();
+              console.log(`[ADK] RTT ~${Math.round(rtt)}ms`);
+              adk.sendText('Hello from Simili!');
+            }}
+            style={{ marginLeft: 12 }}
+          >
+            Connect ADK (POC)
+          </button>
+        )}
       </header>
 
       <main className="simili-main">
