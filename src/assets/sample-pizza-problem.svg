@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="400" height="300" fill="#FFFEF7"/>
+  
+  <!-- Title -->
+  <text x="200" y="40" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="24" fill="#2D3748">
+    Pizza Party! 🍕
+  </text>
+  
+  <!-- Pizza circle -->
+  <circle cx="200" cy="170" r="90" fill="#FFA500" stroke="#D2691E" stroke-width="3"/>
+  
+  <!-- Pizza slices (8 total) -->
+  <g stroke="#D2691E" stroke-width="2" fill="none">
+    <line x1="200" y1="80" x2="200" y2="260"/>
+    <line x1="110" y1="170" x2="290" y2="170"/>
+    <line x1="136" y1="106" x2="264" y2="234"/>
+    <line x1="136" y1="234" x2="264" y2="106"/>
+  </g>
+  
+  <!-- Eaten slices (3 slices with X marks) -->
+  <g fill="#FF6B6B" font-family="Fredoka, sans-serif" font-size="36" text-anchor="middle">
+    <text x="165" y="145">✗</text>
+    <text x="235" y="145">✗</text>
+    <text x="200" y="210">✗</text>
+  </g>
+  
+  <!-- Question -->
+  <text x="200" y="280" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="18" fill="#4A5568">
+    How much pizza is left?
+  </text>
+</svg>

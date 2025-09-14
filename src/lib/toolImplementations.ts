@@ -1,6 +1,7 @@
 import { FunctionCall } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 import { designSystem } from '../config/designSystem';
+import { useThreeActStore } from '../stores/threeActStore';
 
 // Types for our tool responses
 export interface ReasoningStep {
@@ -43,7 +44,8 @@ export const sessionStore = {
   misconceptions: [] as Misconception[],
   annotations: [] as CanvasAnnotation[],
   celebrations: [] as any[],
-  offTaskEvents: [] as OffTaskEvent[]
+  offTaskEvents: [] as OffTaskEvent[],
+  anxietyEvents: [] as any[]
 };
 
 // Tool implementation functions
@@ -203,6 +205,101 @@ export const toolImplementations = {
     window.dispatchEvent(new CustomEvent('canvas-annotation', { detail: annotation }));
     
     return { success: true, annotationId: annotation.id };
+  },
+  
+  set_lesson_act: async (params: any) => {
+    console.log('Transitioning to act:', params.act, 'with tools:', params.toolsToUnlock);
+    
+    // Get the store instance
+    const threeActStore = useThreeActStore.getState();
+    
+    // Transition to the new act
+    threeActStore.setAct(params.act, params.toolsToUnlock);
+    
+    // Emit event for UI updates
+    window.dispatchEvent(new CustomEvent('lesson-act-changed', {
+      detail: {
+        act: params.act,
+        toolsToUnlock: params.toolsToUnlock || [],
+        timestamp: Date.now()
+      }
+    }));
+    
+    return { 
+      success: true, 
+      transitionedTo: params.act,
+      toolsUnlocked: params.toolsToUnlock || []
+    };
+  },
+  
+  detect_math_anxiety: async (params: any) => {
+    console.log('Math anxiety detected:', params);
+    
+    const anxietyEvent = {
+      id: uuidv4(),
+      timestamp: Date.now(),
+      anxietyLevel: params.anxiety_level,
+      indicators: params.indicators,
+      studentQuote: params.student_quote,
+      recommendedApproach: params.recommended_approach
+    };
+    
+    // Store anxiety event
+    if (!sessionStore.anxietyEvents) {
+      sessionStore.anxietyEvents = [];
+    }
+    sessionStore.anxietyEvents.push(anxietyEvent);
+    
+    // Emit event for UI adjustments
+    window.dispatchEvent(new CustomEvent('math-anxiety-detected', {
+      detail: anxietyEvent
+    }));
+    
+    // If high anxiety, might want to provide immediate encouragement
+    if (params.anxiety_level === 'high') {
+      window.dispatchEvent(new CustomEvent('provide-encouragement', {
+        detail: {
+          immediate: true,
+          type: 'anxiety-relief'
+        }
+      }));
+    }
+    
+    return {
+      success: true,
+      anxietyLevel: params.anxiety_level,
+      approachAdjusted: params.recommended_approach
+    };
+  },
+  
+  verify_problem_understanding: async (params: any) => {
+    console.log('Pi verifying problem understanding:', params);
+    
+    // Store the verification for analytics
+    const verification = {
+      id: uuidv4(),
+      timestamp: Date.now(),
+      totalObjects: params.total_objects,
+      targetObjects: params.target_objects,
+      problemType: params.problem_type,
+      studentAnswer: params.student_answer,
+      isCorrect: params.is_correct
+    };
+    
+    // Could emit an event if the understanding is wrong
+    if (params.total_objects !== 6 && params.problem_type === 'fraction') {
+      console.warn('Pi miscounted! Should be 6 blocks total, Pi counted:', params.total_objects);
+      window.dispatchEvent(new CustomEvent('pi-miscount-detected', {
+        detail: verification
+      }));
+    }
+    
+    return {
+      success: true,
+      verified: true,
+      correctTotal: 6, // For LEGO blocks problem
+      correctTarget: 2  // Blue blocks
+    };
   }
 };
 

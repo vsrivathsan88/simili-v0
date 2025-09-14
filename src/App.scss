@@ -23,9 +23,9 @@
 }
 
 .simili-main {
-  padding: var(--spacing-xl);
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 0;
+  width: 100%;
+  height: calc(100vh - 60px);
 }
 
 .simili-welcome {
@@ -357,13 +357,9 @@
 
 // New optimized workspace layout
 .simili-workspace-optimized {
-  height: calc(100vh - 60px);
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  grid-template-rows: 1fr 80px;
-  grid-template-areas: 
-    "sidebar main"
-    "toolbar toolbar";
+  height: 100%;
+  width: 100%;
+  position: relative;
   background: linear-gradient(135deg, #FFFEF7 0%, #F8FAFC 100%);
   overflow: hidden;
   
@@ -455,8 +451,11 @@
   
   // Main canvas area
   .workspace-main {
-    grid-area: main;
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     overflow: hidden;
     
     .canvas-container {

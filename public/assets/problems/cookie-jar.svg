@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="400" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="600" height="400" fill="#FFF5F5"/>
+  
+  <!-- Title -->
+  <text x="300" y="40" text-anchor="middle" font-family="Comic Sans MS, cursive" font-size="24" fill="#2D3748">
+    The Cookie Jar Adventure 🍪
+  </text>
+  
+  <!-- Cookie Jar -->
+  <g transform="translate(200, 80)">
+    <!-- Jar body -->
+    <ellipse cx="100" cy="220" rx="90" ry="20" fill="#E0E7FF"/>
+    <rect x="10" y="100" width="180" height="120" fill="#E0E7FF" fill-opacity="0.3" stroke="#6366F1" stroke-width="3"/>
+    <ellipse cx="100" cy="100" rx="90" ry="20" fill="#E0E7FF" stroke="#6366F1" stroke-width="3"/>
+    
+    <!-- Jar lid -->
+    <ellipse cx="100" cy="90" rx="70" ry="15" fill="#8B8B8B" stroke="#696969" stroke-width="2"/>
+    <circle cx="100" cy="80" r="15" fill="#A9A9A9" stroke="#696969" stroke-width="2"/>
+    
+    <!-- Label -->
+    <rect x="50" y="140" width="100" height="40" fill="#FFFFFF" stroke="#6366F1" stroke-width="1" rx="5"/>
+    <text x="100" y="165" text-anchor="middle" font-family="Comic Sans MS, cursive" font-size="16" fill="#6366F1">
+      Cookies
+    </text>
+  </g>
+  
+  <!-- Cookies outside jar (eaten) -->
+  <g transform="translate(50, 280)">
+    <!-- Cookie 1 with bite -->
+    <circle cx="30" cy="30" r="25" fill="#D2691E" stroke="#8B4513" stroke-width="2"/>
+    <path d="M 45 30 A 15 15 0 0 1 30 45 L 30 30 Z" fill="#FFF5F5"/>
+    <circle cx="20" cy="20" r="3" fill="#654321"/>
+    <circle cx="35" cy="25" r="3" fill="#654321"/>
+    <circle cx="25" cy="35" r="3" fill="#654321"/>
+    
+    <!-- Cookie 2 with bite -->
+    <circle cx="100" cy="40" r="25" fill="#D2691E" stroke="#8B4513" stroke-width="2"/>
+    <path d="M 85 40 A 12 12 0 0 1 95 28 L 100 40 Z" fill="#FFF5F5"/>
+    <circle cx="90" cy="35" r="3" fill="#654321"/>
+    <circle cx="105" cy="45" r="3" fill="#654321"/>
+    <circle cx="110" cy="35" r="3" fill="#654321"/>
+    
+    <!-- Cookie crumbs -->
+    <circle cx="60" cy="50" r="2" fill="#D2691E"/>
+    <circle cx="65" cy="55" r="2" fill="#D2691E"/>
+    <circle cx="70" cy="52" r="2" fill="#D2691E"/>
+    <circle cx="140" cy="45" r="2" fill="#D2691E"/>
+    <circle cx="145" cy="50" r="2" fill="#D2691E"/>
+  </g>
+  
+  <!-- Remaining cookies visible in jar -->
+  <g transform="translate(200, 160)">
+    <circle cx="40" cy="40" r="20" fill="#D2691E" stroke="#8B4513" stroke-width="1" opacity="0.6"/>
+    <circle cx="80" cy="35" r="20" fill="#D2691E" stroke="#8B4513" stroke-width="1" opacity="0.6"/>
+    <circle cx="120" cy="40" r="20" fill="#D2691E" stroke="#8B4513" stroke-width="1" opacity="0.6"/>
+    <circle cx="60" cy="60" r="20" fill="#D2691E" stroke="#8B4513" stroke-width="1" opacity="0.6"/>
+    <circle cx="100" cy="65" r="20" fill="#D2691E" stroke="#8B4513" stroke-width="1" opacity="0.6"/>
+    <circle cx="80" cy="85" r="20" fill="#D2691E" stroke="#8B4513" stroke-width="1" opacity="0.6"/>
+  </g>
+  
+  <!-- Mystery text -->
+  <text x="450" y="320" text-anchor="middle" font-family="Comic Sans MS, cursive" font-size="16" fill="#8B4513">
+    "Just a tiny bit!" 
+  </text>
+  <text x="450" y="340" text-anchor="middle" font-family="Comic Sans MS, cursive" font-size="14" fill="#8B4513">
+    - Little Sister
+  </text>
+</svg>

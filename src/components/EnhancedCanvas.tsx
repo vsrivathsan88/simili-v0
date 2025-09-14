@@ -7,10 +7,12 @@ interface Point {
 }
 
 interface Stroke {
+  id: string;
   points: Point[];
   color: string;
   width: number;
   tool: 'pencil' | 'pen' | 'eraser';
+  selected?: boolean;
 }
 
 interface TextElement {
@@ -29,6 +31,10 @@ interface EnhancedCanvasProps {
   currentTool: string;
   currentColor: string;
   strokeWidth: number;
+  clearTrigger?: number; // Add clear trigger prop
+  disabled?: boolean; // Add disabled prop for Act 1
+  enableSelection?: boolean; // Enable selection mode
+  onDeleteSelected?: () => void; // Callback when delete is requested
 }
 
 const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
@@ -38,7 +44,11 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
   background = 'graph',
   currentTool,
   currentColor,
-  strokeWidth
+  strokeWidth,
+  clearTrigger,
+  disabled = false,
+  enableSelection = false,
+  onDeleteSelected
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
@@ -46,6 +56,9 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [textElements, setTextElements] = useState<TextElement[]>([]);
   const [textInput, setTextInput] = useState<{ x: number; y: number; text: string } | null>(null);
+  const [selectedStrokeIds, setSelectedStrokeIds] = useState<Set<string>>(new Set());
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectionBox, setSelectionBox] = useState<{ start: Point; end: Point } | null>(null);
   const currentStrokeRef = useRef<Point[]>([]);
   const animationFrameRef = useRef<number>();
   const lastPointRef = useRef<Point | null>(null);
@@ -85,41 +98,8 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
     }, 100);
   }, [width, height, onCanvasChange]);
 
-  // Redraw entire canvas
-  const redrawCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    const context = contextRef.current;
-    if (!canvas || !context) return;
-
-    // Clear canvas
-    context.clearRect(0, 0, width, height);
-
-    // Draw background
-    drawBackground(context);
-
-    // Redraw all strokes
-    strokes.forEach(stroke => {
-      drawStroke(context, stroke);
-    });
-
-    // Draw all text elements
-    textElements.forEach(text => {
-      drawText(context, text);
-    });
-
-    // Notify parent of changes
-    if (onCanvasChange) {
-      const imageData = canvas.toDataURL('image/jpeg', 0.8);
-      onCanvasChange(imageData);
-    }
-  }, [strokes, textElements, width, height, background, onCanvasChange]);
-
-  useEffect(() => {
-    redrawCanvas();
-  }, [redrawCanvas]);
-
-
-  const drawBackground = (ctx: CanvasRenderingContext2D) => {
+  // Define drawBackground before redrawCanvas
+  const drawBackground = useCallback((ctx: CanvasRenderingContext2D) => {
     // Fill with paper color
     ctx.fillStyle = '#FFFEF7';
     ctx.fillRect(0, 0, width, height);
@@ -152,7 +132,77 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
         ctx.stroke();
       }
     }
-  };
+  }, [width, height, background]);
+
+  // Redraw entire canvas
+  const redrawCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    const context = contextRef.current;
+    if (!canvas || !context) return;
+
+    // Clear canvas
+    context.clearRect(0, 0, width, height);
+
+    // Draw background
+    drawBackground(context);
+
+    // Redraw all strokes
+    strokes.forEach(stroke => {
+      drawStroke(context, stroke);
+    });
+    
+    // Draw selection box if active
+    if (selectionBox && isSelecting) {
+      context.strokeStyle = '#3B82F6';
+      context.lineWidth = 1;
+      context.setLineDash([5, 5]);
+      const width = selectionBox.end.x - selectionBox.start.x;
+      const height = selectionBox.end.y - selectionBox.start.y;
+      context.strokeRect(selectionBox.start.x, selectionBox.start.y, width, height);
+      context.setLineDash([]);
+    }
+
+    // Draw all text elements
+    textElements.forEach(text => {
+      drawText(context, text);
+    });
+
+    // Notify parent of changes
+    if (onCanvasChange) {
+      const imageData = canvas.toDataURL('image/jpeg', 0.8);
+      onCanvasChange(imageData);
+    }
+  }, [strokes, textElements, width, height, background, onCanvasChange, drawBackground, selectedStrokeIds, selectionBox, isSelecting]);
+
+  useEffect(() => {
+    redrawCanvas();
+  }, [redrawCanvas]);
+
+  // Clear canvas when clearTrigger changes
+  useEffect(() => {
+    if (clearTrigger !== undefined && clearTrigger > 0) {
+      console.log('Clearing canvas - clearTrigger changed:', clearTrigger);
+      setStrokes([]);
+      setTextElements([]);
+      setTextInput(null);
+      setIsDrawing(false);
+      
+      // Clear the canvas immediately
+      const canvas = canvasRef.current;
+      const context = contextRef.current;
+      if (canvas && context) {
+        context.clearRect(0, 0, width, height);
+        drawBackground(context);
+        
+        // Send cleared canvas to parent
+        if (onCanvasChange) {
+          const imageData = canvas.toDataURL('image/jpeg', 0.8);
+          onCanvasChange(imageData);
+          console.log('Cleared canvas sent to Pi');
+        }
+      }
+    }
+  }, [clearTrigger]);
 
   const drawStroke = (ctx: CanvasRenderingContext2D, stroke: Stroke) => {
     if (stroke.points.length < 2) return;
@@ -178,6 +228,16 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
     }
 
     ctx.stroke();
+    
+    // Draw selection highlight if selected
+    if (selectedStrokeIds.has(stroke.id)) {
+      ctx.strokeStyle = '#3B82F6';
+      ctx.lineWidth = stroke.width + 4;
+      ctx.globalAlpha = 0.3;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    
     ctx.globalCompositeOperation = 'source-over';
   };
 
@@ -207,24 +267,41 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
   };
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+    if (disabled) return; // Prevent drawing when disabled
+    
+    const point = getCoordinates(e);
+    
+    // Handle selection mode
+    if (currentTool === 'select' || enableSelection) {
+      setIsSelecting(true);
+      setSelectionBox({ start: point, end: point });
+      return;
+    }
+    
     if (currentTool === 'text') {
-      const point = getCoordinates(e);
       setTextInput({ x: point.x, y: point.y, text: '' });
       return;
     }
 
     if (currentTool !== 'pencil' && currentTool !== 'eraser') return;
 
-    const point = getCoordinates(e);
     setIsDrawing(true);
     currentStrokeRef.current = [point];
     lastPointRef.current = point;
   };
 
   const draw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    const point = getCoordinates(e);
+    
+    // Handle selection box dragging
+    if (isSelecting && selectionBox) {
+      setSelectionBox({ ...selectionBox, end: point });
+      redrawCanvas(); // Redraw to show selection box
+      return;
+    }
+    
     if (!isDrawing || (currentTool !== 'pencil' && currentTool !== 'eraser')) return;
 
-    const point = getCoordinates(e);
     currentStrokeRef.current.push(point);
 
     // Cancel any pending animation frame
@@ -250,7 +327,7 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
       lastPointRef.current = point;
       context.globalCompositeOperation = 'source-over';
     });
-  }, [isDrawing, currentTool, currentColor, strokeWidth]);
+  }, [isDrawing, isSelecting, selectionBox, currentTool, currentColor, strokeWidth, redrawCanvas]);
 
   const stopDrawing = useCallback(() => {
     if (!isDrawing) return;
@@ -259,6 +336,7 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
     
     if (currentStrokeRef.current.length > 0) {
       const newStroke: Stroke = {
+        id: `stroke-${Date.now()}-${Math.random()}`,
         points: [...currentStrokeRef.current],
         color: currentColor,
         width: strokeWidth,
@@ -284,7 +362,7 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
     }
     
     lastPointRef.current = null;
-  }, [isDrawing, currentColor, strokeWidth, currentTool, onCanvasChange]);
+  }, [isDrawing, isSelecting, selectionBox, strokes, currentColor, strokeWidth, currentTool, onCanvasChange, redrawCanvas]);
 
   const handleTextSubmit = (text: string) => {
     if (textInput && text.trim()) {
@@ -313,6 +391,34 @@ const EnhancedCanvas: React.FC<EnhancedCanvasProps> = ({
     }
     setTextInput(null);
   };
+
+  // Handle keyboard events for deletion
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedStrokeIds.size > 0) {
+        e.preventDefault();
+        // Remove selected strokes
+        setStrokes(prev => prev.filter(stroke => !selectedStrokeIds.has(stroke.id)));
+        setSelectedStrokeIds(new Set());
+        
+        // Notify parent if callback provided
+        if (onDeleteSelected) {
+          onDeleteSelected();
+        }
+      }
+      
+      // Clear selection on Escape
+      if (e.key === 'Escape') {
+        setSelectedStrokeIds(new Set());
+        setSelectionBox(null);
+        setIsSelecting(false);
+        redrawCanvas();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedStrokeIds, onDeleteSelected, redrawCanvas]);
 
   return (
     <div className="enhanced-canvas-container">

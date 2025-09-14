@@ -1,0 +1,80 @@
+@import '../config/variables';
+@import '../styles/animations';
+
+.act-transition-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  
+  .transition-content {
+    background: white;
+    border-radius: 24px;
+    padding: 48px 64px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    
+    h2 {
+      font-family: $hand-drawn-font;
+      font-size: 48px;
+      color: #7B61FF;
+      margin: 0;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+      @extend .float-gentle;
+    }
+    
+    .sparkles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      
+      .sparkle {
+        position: absolute;
+        font-size: 24px;
+        
+        &:nth-child(1) { top: 10%; left: 10%; }
+        &:nth-child(2) { top: 10%; right: 10%; }
+        &:nth-child(3) { top: 50%; left: 5%; }
+        &:nth-child(4) { top: 50%; right: 5%; }
+        &:nth-child(5) { bottom: 10%; left: 10%; }
+        &:nth-child(6) { bottom: 10%; right: 10%; }
+      }
+    }
+  }
+}
+
+// Special styles for each act
+.act-transition-overlay {
+  &.act-1 {
+    .transition-content {
+      background: linear-gradient(135deg, #FFFEF7 0%, #FFF8E1 100%);
+      h2 { color: #FF6B6B; }
+    }
+  }
+  
+  &.act-2 {
+    .transition-content {
+      background: linear-gradient(135deg, #E3F2FD 0%, #E8F5E9 100%);
+      h2 { color: #4ECDC4; }
+    }
+  }
+  
+  &.act-3 {
+    .transition-content {
+      background: linear-gradient(135deg, #F3E5F5 0%, #FFE0B2 100%);
+      h2 { color: #7B61FF; }
+    }
+  }
+}

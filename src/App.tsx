@@ -22,21 +22,38 @@ import { sessionRecorder } from './lib/sessionRecorder';
 import { EnhancedVisionService } from './lib/visionService';
 import { RealTimeCanvasHandler } from './lib/realtimeCanvas';
 import { Modality } from '@google/genai';
+import { useThreeActStore } from './stores/threeActStore';
+import FloatingToolbar from './components/FloatingToolbar';
+import ActTransition from './components/ActTransition';
+import AudioOutput from './components/AudioOutput';
+import { piOrchestrator } from './lib/piOrchestrator';
+import { geminiOrchestrator } from './lib/geminiOrchestrator';
+import { ACT_PROMPTS } from './config/actPrompts';
+import { contextCards, ContextCardSystem } from './lib/contextCards';
+import { structuredOrchestrator } from './lib/orchestrator/structuredOrchestrator';
+import { systemMonitor } from './lib/monitoring/systemMonitor';
+import { reliabilityLayer } from './lib/reliability/reliabilityLayer';
+import DebugPanel from './components/DebugPanel';
+import ProblemNavigator from './components/ProblemNavigator';
+import { lessons, getProblem, getNextProblem } from './config/lessonStructure';
 import './App.scss';
+// Import the JPEG once you've saved it
+// import legoBlocksJpg from './assets/lego-blocks.jpg';
 
 // Main Simili App Component
 function SimiliApp() {
   const { client, setConfig, setModel, connect, disconnect, connected } = useLiveAPIContext();
   // Remove local isConnected state - use connected from context
   const [canvasImageData, setCanvasImageData] = useState<string>(''); // Real-time canvas updates
-  const [problemImage, setProblemImage] = useState<string>('');
+  const [problemImage, setProblemImage] = useState<string>(''); // Will load on mount
   const [showVoicePermission, setShowVoicePermission] = useState(false);
   const [showTeacherPanel, setShowTeacherPanel] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
+  const [currentProblemIndex, setCurrentProblemIndex] = useState(0);
   const [isManualDisconnect, setIsManualDisconnect] = useState(false);
   const [showTransition, setShowTransition] = useState(false);
   const [transitionLesson, setTransitionLesson] = useState<string>('');
-  const [currentTool, setCurrentTool] = useState<'pencil' | 'eraser' | 'text'>('pencil');
+  const [currentTool, setCurrentTool] = useState<'pencil' | 'eraser' | 'text' | 'select'>('pencil');
   const [currentColor, setCurrentColor] = useState('#2D3748');
   const [showLessonEntry, setShowLessonEntry] = useState(false);
   const [isProblemMinimized, setIsProblemMinimized] = useState(false);
@@ -70,6 +87,18 @@ function SimiliApp() {
     lastVisionSync: 0
   });
   
+  // Subscribe to act changes
+  const currentAct = useThreeActStore(state => state.currentAct);
+  
+  // Update context cards when act changes
+  useEffect(() => {
+    contextCards.addCard(ContextCardSystem.getActCard(currentAct));
+    contextCards.addCard(ContextCardSystem.getProblemCard());
+    
+    // Take a snapshot when act changes
+    systemMonitor.snapshot(`act_change_to_${currentAct}`);
+  }, [currentAct]);
+  
   // Real-time vision system
   const [visionService, setVisionService] = useState<EnhancedVisionService | null>(null);
   const [realtimeCanvas, setRealtimeCanvas] = useState<RealTimeCanvasHandler | null>(null);
@@ -86,13 +115,20 @@ function SimiliApp() {
       setVisionService(vision);
       console.log('Enhanced vision service initialized');
     }
+    // Use structured orchestrator's minimal prompt
     setConfig({
       systemInstruction: {
-        parts: [{ text: PI_SYSTEM_INSTRUCTION }]
+        parts: [{ text: structuredOrchestrator.getSystemPrompt() }]
       },
       tools: [{ functionDeclarations: piToolDeclarations }],
       responseModalities: [Modality.AUDIO]
     });
+    
+    // Don't load any image yet - wait for lesson selection
+    
+    // Expose useThreeActStore to window for testing
+    (window as any).useThreeActStore = useThreeActStore;
+    console.log('Three-act store exposed to window. Test with: useThreeActStore.getState().setAct("act1")');
   }, [setConfig, setModel]);
 
   // Initialize real-time canvas when vision service and problem image are available
@@ -132,22 +168,78 @@ function SimiliApp() {
     // Set up event listeners
     const handleOpen = () => {
       console.log('Connected to Gemini Live');
+      // Update global state for monitoring
+      (window as any).geminiConnected = true;
+      
+      // Log connection event
+      systemMonitor.log({
+        type: 'info',
+        level: 'info',
+        message: 'Connected to Gemini Live',
+        data: { sessionId: 'pizza-fractions-1' }
+      });
+      
       // Start session recording
       sessionRecorder.startSession('pizza-fractions-1');
       
       // Send initial introduction only once per session
       setTimeout(() => {
         if (client && connected && !sessionState.hasIntroduced) {
+          // Add narrative context card based on current problem in lesson
+          if (selectedLesson) {
+            const currentProblem = getProblem(selectedLesson, currentProblemIndex);
+            if (currentProblem) {
+              contextCards.addCard(ContextCardSystem.getNarrativeCard(currentProblem.narrativeKey));
+              contextCards.addCard(ContextCardSystem.getActCard('act1'));
+              
+              // Add problem info card
+              contextCards.addCard({
+                id: 'problem-info',
+                type: 'problem_facts',
+                content: `Current Problem: "${currentProblem.title}" (${currentProblemIndex + 1} of ${lessons[selectedLesson].problems.length})`,
+                priority: 'medium'
+              });
+            }
+          }
+          
+          // Build initial context
+          const initialContext = contextCards.buildContextMessage(true);
+          
+          // Send initial message with narrative
           client.send({
-            text: `SESSION_START: This is the beginning of a new learning session. The student just connected. Give your FIRST INTRODUCTION as specified in your instructions - be brief, welcoming, and then wait for them to start working on the problem. Do NOT introduce yourself again during this session.`
+            text: `${initialContext}
+
+[SESSION START]
+The student just connected. Share your STORY about the LEGO blocks (provided above) in an excited, friendly way!
+Then ask the follow-up question. Remember: You're not a teacher, you're a curious friend with a puzzle!`
           });
           
           setSessionState(prev => ({ 
             ...prev, 
             hasIntroduced: true 
           }));
+          
+          // Send the problem image immediately after connection
+          if (problemImage) {
+            console.log('Sending initial problem image to Pi');
+            // Create a blank canvas for initial state
+            const blankCanvas = document.createElement('canvas');
+            const ctx = blankCanvas.getContext('2d');
+            if (ctx) {
+              blankCanvas.width = window.innerWidth;
+              blankCanvas.height = window.innerHeight;
+              ctx.fillStyle = '#FFFEF7';
+              ctx.fillRect(0, 0, blankCanvas.width, blankCanvas.height);
+              const blankCanvasData = blankCanvas.toDataURL('image/jpeg', 0.8);
+              
+              // Send both problem and blank canvas with a delay
+              setTimeout(() => {
+                sendToVisionAPI(problemImage, blankCanvasData);
+              }, 500);
+            }
+          }
         }
-      }, 1000);
+      }, 1500); // Slightly longer delay for connection stability
     };
 
     const handleClose = (event: any) => {
@@ -157,6 +249,22 @@ function SimiliApp() {
         code: event.code,
         reason: event.reason,
         wasClean: event.wasClean
+      });
+      
+      // Update global state for monitoring
+      (window as any).geminiConnected = false;
+      
+      // Log disconnection event
+      systemMonitor.log({
+        type: 'warning',
+        level: 'warning',
+        message: 'Disconnected from Gemini Live',
+        data: { 
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+          isManualDisconnect 
+        }
       });
       
       // If it wasn't a manual disconnect, try to reconnect
@@ -184,12 +292,47 @@ function SimiliApp() {
     const handleToolCallEvent = async (toolCall: any) => {
       console.log('Tool call received:', toolCall);
       
+      // Log tool call for monitoring
+      systemMonitor.log({
+        type: 'tool_call',
+        level: 'info',
+        message: `Tool calls received: ${toolCall.functionCalls?.length || 0}`,
+        data: toolCall
+      });
+      
       // Handle multiple function calls
       if (toolCall.functionCalls && toolCall.functionCalls.length > 0) {
         const responses = [];
         
         for (const functionCall of toolCall.functionCalls) {
+          // Check for common errors before executing
+          const error = piOrchestrator.checkForCommonErrors(functionCall);
+          if (error) {
+            console.warn('Pi error detected:', error);
+            // Add correction card
+            contextCards.addCard(ContextCardSystem.getCorrectionCard(error));
+          }
+          
+          // Check for wrong answers being marked correct
+          if (functionCall.name === 'mark_reasoning_step' && 
+              functionCall.args?.classification === 'correct' &&
+              (functionCall.args?.transcript?.includes('2/4') || 
+               functionCall.args?.transcript?.includes('out of 4'))) {
+            contextCards.addCard(ContextCardSystem.getCorrectionCard(
+              'Student said 2/4 but there are 6 blocks total. The correct answer is 2/6 or 1/3.'
+            ));
+          }
+          
           const result = await handleToolCall(functionCall);
+          
+          // Dispatch custom event for monitoring
+          window.dispatchEvent(new CustomEvent('toolcall', {
+            detail: {
+              name: functionCall.name,
+              args: functionCall.args,
+              result: result.response
+            }
+          }));
           
           if (result.response) {
             responses.push({
@@ -214,6 +357,32 @@ function SimiliApp() {
     client.on('error', handleError);
     client.on('setupcomplete', handleSetupComplete);
     client.on('toolcall', handleToolCallEvent);
+    
+    // Listen for audio responses to validate them
+    const handleContentData = (content: any) => {
+      if (content.modelTurn?.parts) {
+        const parts = content.modelTurn.parts;
+        const transcript = parts.find((p: any) => p.text)?.text || '';
+        
+        if (transcript) {
+          // Post-response validation
+          reliabilityLayer.validateResponse(transcript, []);
+          
+          // Log response
+          systemMonitor.log({
+            type: 'info',
+            level: 'debug',
+            message: 'Pi response received',
+            data: { 
+              transcript: transcript.substring(0, 100) + '...',
+              length: transcript.length 
+            }
+          });
+        }
+      }
+    };
+    
+    client.on('content', handleContentData);
 
     return () => {
       client.off('open', handleOpen);
@@ -221,6 +390,7 @@ function SimiliApp() {
       client.off('error', handleError);
       client.off('setupcomplete', handleSetupComplete);
       client.off('toolcall', handleToolCallEvent);
+      client.off('content', handleContentData);
     };
   }, [client]);
 
@@ -350,6 +520,12 @@ function SimiliApp() {
         timestamp: Date.now()
       }, imageData);
     }
+    
+    // Send updated canvas to Pi via Gemini Live
+    if (connected && client && problemImage && imageData) {
+      console.log('Sending canvas update to Pi');
+      sendToVisionAPI(problemImage, imageData);
+    }
   };
 
   // Update real-time canvas when problem image changes
@@ -367,13 +543,24 @@ function SimiliApp() {
     }
   };
 
-  const sendToVisionAPI = (problemImg: string, canvasImg: string) => {
+  const sendToVisionAPI = async (problemImg: string, canvasImg: string) => {
     if (!client || !connected) {
       console.log('Vision API: Client not ready or not connected');
       return;
     }
     
     try {
+      // Perform pre-flight checks
+      const validation = await reliabilityLayer.preFlightCheck('Vision update', [problemImg, canvasImg]);
+      if (!validation.passed) {
+        console.warn('Pre-flight check failed:', validation.issues);
+        systemMonitor.log({
+          type: 'warning',
+          level: 'warning',
+          message: 'Pre-flight check failed for vision update',
+          data: validation
+        });
+      }
       // Convert data URLs to base64
       const problemBase64 = problemImg.split(',')[1];
       const canvasBase64 = canvasImg.split(',')[1];
@@ -415,14 +602,18 @@ function SimiliApp() {
           const isFirstTime = !sessionState.firstImagesShared;
           
           if (isFirstTime) {
-            // First time sharing images
+            // Send context cards with first message
+            const context = contextCards.buildContextMessage(true);
+            
             client.send({
-              text: `Pi, I'm sharing two images with you: 
+              text: `${context}
 
-Image 1: The math problem I need to solve
-Image 2: My current work on the student notebook/canvas
+[VISION UPDATE]
+You can now see:
+- Image 1: LEGO blocks (6 total: 2 blue, 4 gray)
+- Image 2: Student's blank canvas
 
-This is the first time I'm showing you my work. Please look at both images and help me get started on this problem. Focus on what I've drawn or written on my canvas and guide me based on my current progress.`
+The student is viewing the LEGO blocks problem.`
             });
             
             setSessionState(prev => ({ 
@@ -431,12 +622,15 @@ This is the first time I'm showing you my work. Please look at both images and h
               lastVisionSync: now 
             }));
           } else {
-            // Subsequent updates - only send if significant time has passed
+            // Subsequent updates - only send new context cards
             const timeSinceLastSync = now - sessionState.lastVisionSync;
             if (timeSinceLastSync > 3000) { // Only every 3+ seconds
-              client.send({
-                text: `Pi, here's an updated view of my work on the canvas. Please look at what I've drawn or changed and continue helping me with the problem. If I'm getting off track, please redirect me back to the math.`
-              });
+              const context = contextCards.buildContextMessage(false);
+              const message = context 
+                ? `${context}\n\nCanvas updated.`
+                : 'Canvas updated - student is drawing.';
+              
+              client.send({ text: message });
               
               setSessionState(prev => ({ 
                 ...prev, 
@@ -452,39 +646,74 @@ This is the first time I'm showing you my work. Please look at both images and h
     }
   };
 
+  const loadProblemImage = (imageFile: string) => {
+    const imagePath = imageFile === 'lego-blocks.svg' 
+      ? '/assets/lego-blocks.svg'
+      : `/assets/problems/${imageFile}`;
+    
+    console.log('Loading problem image:', imagePath);
+    
+    fetch(imagePath)
+      .then(res => res.text())
+      .then(svgText => {
+        // Convert SVG to data URL
+        const blob = new Blob([svgText], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        
+        // Convert to image and then to JPEG data URL
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+            const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            setProblemImage(jpegDataUrl);
+            console.log(`${problemType} image loaded and converted to JPEG`);
+          }
+          URL.revokeObjectURL(url);
+        };
+        img.src = url;
+      })
+      .catch(err => {
+        console.error(`Failed to load ${problemType} image:`, err);
+      });
+  };
+
   const handleLessonSelect = (lessonId: string) => {
     console.log('Lesson selected:', lessonId);
-    const lessons = [
-      { id: 'intro-fractions', title: 'Parts & Wholes' },
-      { id: 'equivalent-fractions', title: 'Same Amount, Different Ways' },
-      { id: 'comparing-fractions', title: 'Bigger or Smaller?' },
-      { id: 'fractions-number-line', title: 'Finding Your Spot' },
-      { id: 'unit-fractions', title: 'Special One-Pieces' },
-      { id: 'fraction-word-problems', title: 'Real-Life Stories' }
-    ];
     
-    const lesson = lessons.find(l => l.id === lessonId);
+    const lesson = lessons[lessonId];
+    if (!lesson) {
+      console.error('Lesson not found:', lessonId);
+      return;
+    }
+    
     console.log('Found lesson:', lesson);
-    setTransitionLesson(lesson?.title || 'Math Adventures');
+    
+    // Reset to first problem
+    setCurrentProblemIndex(0);
+    
+    // Load the first problem image for this lesson
+    const firstProblem = lesson.problems[0];
+    if (firstProblem) {
+      loadProblemImage(firstProblem.imageFile);
+    }
+    
+    setSelectedLesson(lessonId);
+    setTransitionLesson(lesson.title);
     setShowTransition(true);
     setIsManualDisconnect(false);
-    console.log('Starting transition for:', lesson?.title);
+    console.log('Starting transition for:', lesson.title);
   };
 
   const handleTransitionComplete = () => {
     console.log('Transition completed, showing lesson entry popup...');
     setShowTransition(false);
-    // Find the lesson ID from the title to set selected lesson properly
-    const lessons = [
-      { id: 'intro-fractions', title: 'Parts & Wholes' },
-      { id: 'equivalent-fractions', title: 'Same Amount, Different Ways' },
-      { id: 'comparing-fractions', title: 'Bigger or Smaller?' },
-      { id: 'fractions-number-line', title: 'Finding Your Spot' },
-      { id: 'unit-fractions', title: 'Special One-Pieces' },
-      { id: 'fraction-word-problems', title: 'Real-Life Stories' }
-    ];
-    const lesson = lessons.find(l => l.title === transitionLesson);
-    setSelectedLesson(lesson?.id || 'intro-fractions');
     // Show lesson entry popup instead of auto-connecting
     setShowLessonEntry(true);
   };
@@ -506,7 +735,7 @@ This is the first time I'm showing you my work. Please look at both images and h
     { name: 'Green', value: '#38A169' }
   ];
 
-  const handleToolChange = (tool: 'pencil' | 'eraser' | 'text') => {
+  const handleToolChange = (tool: 'pencil' | 'eraser' | 'text' | 'select') => {
     setCurrentTool(tool);
     
     // Notify real-time canvas of tool change
@@ -520,9 +749,12 @@ This is the first time I'm showing you my work. Please look at both images and h
   };
 
   const handleClear = () => {
-    // Clear canvas and notify real-time system
+    // Clear canvas state and notify real-time system
     console.log('Clear requested');
     setCanvasImageData('');
+    
+    // Clear placed manipulatives from the new system
+    setPlacedManipulatives([]);
     
     if (realtimeCanvas) {
       realtimeCanvas.handleCanvasEvent({
@@ -532,7 +764,7 @@ This is the first time I'm showing you my work. Please look at both images and h
     }
   };
 
-  const handleAddManipulative = (type: 'fraction-bar' | 'number-line' | 'area-model' | 'array-grid' | 'fraction-circles' | 'visual-number-line') => {
+  const handleAddManipulative = (type: 'fraction-bar' | 'number-line' | 'area-model' | 'array-grid' | 'fraction-circles' | 'visual-number-line' | 'pizza') => {
     console.log('Add manipulative requested:', type);
     // The actual adding is handled by UnifiedCanvas
   };
@@ -570,6 +802,72 @@ This is the first time I'm showing you my work. Please look at both images and h
   const handleLessonEntryCancel = () => {
     setShowLessonEntry(false);
     setSelectedLesson(null);
+  };
+  
+  // Problem navigation handlers
+  const handleNextProblem = () => {
+    if (!selectedLesson) return;
+    
+    const lesson = lessons[selectedLesson];
+    if (currentProblemIndex < lesson.problems.length - 1) {
+      const nextIndex = currentProblemIndex + 1;
+      const nextProblem = lesson.problems[nextIndex];
+      
+      // Clear canvas for new problem
+      handleClear();
+      
+      // Load new problem image
+      loadProblemImage(nextProblem.imageFile);
+      
+      // Update problem index
+      setCurrentProblemIndex(nextIndex);
+      
+      // Reset to Act 1 for new problem
+      useThreeActStore.getState().setAct('act1');
+      
+      // Update context cards
+      contextCards.addCard(ContextCardSystem.getNarrativeCard(nextProblem.narrativeKey));
+      contextCards.addCard(ContextCardSystem.getActCard('act1'));
+      
+      // Notify Pi about new problem
+      if (client && connected) {
+        client.send({
+          text: `[NEW PROBLEM] Moving to problem ${nextIndex + 1}: "${nextProblem.title}". Share the new story!`
+        });
+      }
+    }
+  };
+  
+  const handlePreviousProblem = () => {
+    if (!selectedLesson || currentProblemIndex === 0) return;
+    
+    const lesson = lessons[selectedLesson];
+    const prevIndex = currentProblemIndex - 1;
+    const prevProblem = lesson.problems[prevIndex];
+    
+    // Clear canvas
+    handleClear();
+    
+    // Load previous problem image
+    loadProblemImage(prevProblem.imageFile);
+    
+    // Update problem index
+    setCurrentProblemIndex(prevIndex);
+    
+    // Reset to Act 1
+    useThreeActStore.getState().setAct('act1');
+    
+    // Update context cards
+    contextCards.addCard(ContextCardSystem.getNarrativeCard(prevProblem.narrativeKey));
+    contextCards.addCard(ContextCardSystem.getActCard('act1'));
+  };
+  
+  const handleFinishLesson = () => {
+    // End session
+    handleDisconnect();
+    
+    // Could show a completion screen or redirect to lesson selection
+    alert(`Great job completing the ${lessons[selectedLesson!].title} lesson!`);
   };
 
   // Pi character handlers
@@ -676,51 +974,6 @@ This is the first time I'm showing you my work. Please look at both images and h
           />
         ) : (
           <div className="simili-workspace-optimized">
-            {/* Left sidebar with problem and Pi */}
-            <div className="workspace-sidebar">
-              {/* Problem display */}
-              <div className="sidebar-problem">
-                <ProblemDisplay 
-                  onImageUpload={handleProblemImageUpload}
-                  lessonId={selectedLesson || undefined}
-                />
-              </div>
-
-              {/* Pi character section */}
-              <div className="sidebar-pi">
-                <PiCharacter
-                  state={piState}
-                  onToolRequest={handlePiToolRequest}
-                  onToolSelect={handleToolSelect}
-                  onDismissSuggestion={handlePiSuggestionDismiss}
-                  availableTools={availableTools}
-                  suggestion={currentSuggestion}
-                  className="sidebar-pi-character"
-                />
-                
-                {/* Pi status */}
-                <div className={`pi-status ${connected ? 'listening' : 'connecting'}`}>
-                  {connected ? (
-                    <VoiceInput />
-                  ) : (
-                    'Getting ready...'
-                  )}
-                </div>
-
-                {/* End session button */}
-                <button 
-                  className="end-session-btn" 
-                  onClick={() => {
-                    if (window.confirm('End your adventure with Pi? 🚀\n\nYour thinking will be saved!')) {
-                      handleDisconnect();
-                    }
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-
             {/* Main canvas area */}
             <div className="workspace-main">
               <div className="canvas-container">
@@ -750,83 +1003,27 @@ This is the first time I'm showing you my work. Please look at both images and h
                   ))}
                 </div>
               </div>
-            </div>
-
-            {/* Bottom toolbar */}
-            <div className="workspace-toolbar">
-              {/* Drawing tools */}
-              <div className="toolbar-section">
-                <span className="toolbar-label">Draw:</span>
-                <button 
-                  className={`tool-btn ${currentTool === 'pencil' ? 'active' : ''}`}
-                  onClick={() => handleToolChange('pencil')}
-                  title="Pencil"
-                >
-                  ✏️
-                </button>
-                <button 
-                  className={`tool-btn ${currentTool === 'eraser' ? 'active' : ''}`}
-                  onClick={() => handleToolChange('eraser')}
-                  title="Eraser"
-                >
-                  🧽
-                </button>
-              </div>
               
-              <div className="toolbar-divider" />
+              {/* Floating Toolbar */}
+              <FloatingToolbar
+                currentTool={currentTool}
+                currentColor={currentColor}
+                onToolChange={handleToolChange}
+                onColorChange={setCurrentColor}
+                onClear={handleClear}
+                onAddManipulative={handleAddManipulative}
+              />
               
-              {/* Colors */}
-              <div className="toolbar-section">
-                <span className="toolbar-label">Colors:</span>
-                {colors.map((color) => (
-                  <button
-                    key={color.value}
-                    className={`color-btn ${currentColor === color.value ? 'active' : ''}`}
-                    style={{ backgroundColor: color.value }}
-                    onClick={() => setCurrentColor(color.value)}
-                    title={color.name}
-                  >
-                    {currentColor === color.value ? '✓' : ''}
-                  </button>
-                ))}
-              </div>
-              
-              <div className="toolbar-divider" />
-              
-              {/* Manipulatives from Pi's satchel */}
-              <div className="toolbar-section">
-                <span className="toolbar-label">From Pi's satchel:</span>
-                {availableTools.slice(0, 4).map((tool) => (
-                  <button
-                    key={tool.id}
-                    className="manipulative-btn"
-                    onClick={() => handleToolSelect(tool)}
-                    title={tool.name}
-                  >
-                    {tool.emoji}
-                  </button>
-                ))}
-                <button 
-                  className="more-tools-btn"
-                  onClick={handlePiToolRequest}
-                  title="More tools from Pi"
-                >
-                  🎒
-                </button>
-              </div>
-              
-              <div className="toolbar-divider" />
-              
-              {/* Clear */}
-              <div className="toolbar-section">
-                <button 
-                  className="tool-btn clear-btn"
-                  onClick={handleClear}
-                  title="Clear everything"
-                >
-                  🗑️ Clear
-                </button>
-              </div>
+              {/* Problem Navigator */}
+              {selectedLesson && (
+                <ProblemNavigator
+                  lessonId={selectedLesson}
+                  currentProblemIndex={currentProblemIndex}
+                  onNextProblem={handleNextProblem}
+                  onPreviousProblem={handlePreviousProblem}
+                  onFinishLesson={handleFinishLesson}
+                />
+              )}
             </div>
 
             {/* Teacher panel */}
@@ -850,6 +1047,18 @@ This is the first time I'm showing you my work. Please look at both images and h
         onStart={handleLessonEntryStart}
         onCancel={handleLessonEntryCancel}
       />
+      
+      {/* Act transition overlay */}
+      <ActTransition />
+      
+      {/* Audio output for Pi's voice */}
+      <AudioOutput />
+      
+      {/* Microphone input for Gemini Live */}
+      {connected && <VoiceInput />}
+      
+      {/* Debug panel (development only) */}
+      {process.env.NODE_ENV === 'development' && <DebugPanel />}
     </div>
   );
 }

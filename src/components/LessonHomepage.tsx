@@ -19,64 +19,44 @@ interface LessonHomepageProps {
 const LessonHomepage: React.FC<LessonHomepageProps> = ({ onLessonSelect }) => {
   const lessons: Lesson[] = [
     {
-      id: 'intro-fractions',
-      title: 'Parts & Wholes',
-      subtitle: 'Share pizza like a pro! 🍕',
+      id: 'parts-and-wholes',
+      title: 'Parts and Wholes',
+      subtitle: 'Introduction to Fractions 🍕',
       grade: 'Grade 3',
       unit: 'Unit 5',
-      image: '🍕',
+      image: '🧩',
       active: true,
-      description: 'Pizza time! Learn by playing with yummy treats!'
+      description: 'Explore how things can be divided into parts through fun adventures!'
     },
     {
       id: 'equivalent-fractions',
       title: 'Same Amount, Different Ways',
-      subtitle: 'Cool magic tricks! ✨',
+      subtitle: 'Fraction Magic ✨',
       grade: 'Grade 3',
       unit: 'Unit 5',
-      image: '🍰',
+      image: '🎭',
       active: false,
-      description: '1/2 = 2/4? Mind = blown! 🤯'
+      description: 'Discover how the same amount can look different!'
     },
     {
       id: 'comparing-fractions',
-      title: 'Bigger or Smaller?',
-      subtitle: 'Be a detective! 🕵️',
+      title: 'Which is Bigger?',
+      subtitle: 'Fraction Comparisons 🔍',
       grade: 'Grade 3',
       unit: 'Unit 5',
-      image: '🍪',
+      image: '⚖️',
       active: false,
-      description: 'Which piece wins? You decide!'
+      description: 'Learn to compare different fractions!'
     },
     {
-      id: 'fractions-number-line',
-      title: 'Finding Your Spot',
-      subtitle: 'Treasure hunt time! 🗺️',
-      grade: 'Grade 3',
-      unit: 'Unit 5',
-      image: '📏',
+      id: 'adding-fractions',
+      title: 'Putting Parts Together',
+      subtitle: 'Adding Fractions ➕',
+      grade: 'Grade 4',
+      unit: 'Unit 3',
+      image: '🧮',
       active: false,
-      description: 'Every number has its secret hiding spot!'
-    },
-    {
-      id: 'unit-fractions',
-      title: 'Special One-Pieces',
-      subtitle: 'Like LEGO blocks! 🧱',
-      grade: 'Grade 3',
-      unit: 'Unit 5',
-      image: '🧱',
-      active: false,
-      description: 'The super important building blocks!'
-    },
-    {
-      id: 'fraction-word-problems',
-      title: 'Real-Life Stories',
-      subtitle: 'Math everywhere! 🌍',
-      grade: 'Grade 3',
-      unit: 'Unit 5',
-      image: '📝',
-      active: false,
-      description: 'Math is hiding all around us!'
+      description: 'Combine fractions to make new ones!'
     }
   ];
 

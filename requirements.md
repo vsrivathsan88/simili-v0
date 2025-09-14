@@ -12,7 +12,7 @@
 ## 1. Executive Summary
 
 ### 1.1 Product Vision
-Simili is a reasoning visualization platform that makes student mathematical thinking visible. Using Gemini Live's multimodal conversational AI as the tutoring layer, we focus on capturing, structuring, and visualizing the student's problem-solving journey through an engaging, hand-drawn interface that feels approachable and mistake-friendly.
+Simili is a reasoning visualization platform that makes student mathematical thinking visible. Using Gemini Live's multimodal conversational AI as the tutoring layer, we focus on capturing, structuring, and visualizing the student's problem-solving journey through an engaging, hand-drawn interface that feels approachable and mistake-friendly. We will accomplish this by guiding students through a structured, voice-first Three-Act Math framework, turning a passive canvas into a dynamic stage for their reasoning.
 
 ### 1.2 Core Innovation
 **What We Build:** The reasoning map visualization system, hand-drawn manipulatives, and domain-specific mathematical tools.  
@@ -83,7 +83,7 @@ graph TB
 ```typescript
 // Gemini Live Setup
 const geminiConfig = {
-  model: "gemini-2.0-flash-exp",
+  model: "gemini-2.5-flash-preview-native-audio-dialog",
   voice: {
     style: "friendly_patient",
     speed: 0.95, // Slightly slower for kids
@@ -121,7 +121,7 @@ const geminiConfig = {
       }
     },
     {
-      name: "flag_misconception",
+      name: "flag_misconception", 
       description: "Identify a mathematical misconception",
       parameters: {
         type: "unequal_parts | counting_not_measuring | whole_unclear",
@@ -131,7 +131,7 @@ const geminiConfig = {
     },
     {
       name: "suggest_hint",
-      description: "Provide scaffolded support",
+      description: "Provide scaffolded support", 
       parameters: {
         level: "encouragement | question | visual_hint | worked_example",
         content: "string"
@@ -147,12 +147,19 @@ const geminiConfig = {
     },
     {
       name: "annotate_canvas",
-      description: "Draw on student's canvas",
+      description: "Draw on student's canvas to guide attention",
       parameters: {
         type: "arrow | circle | underline",
-        coordinates: "Point[]",
-        color: "string",
+        targetElementId: "string", // e.g., "fraction-bar-1", "pizza-1-slice-3"
         message: "string"
+      }
+    },
+    {
+      name: "set_lesson_act",
+      description: "Transition the UI to the next act in the 3-act flow",
+      parameters: {
+        act: "'act1' | 'act2' | 'act3'",
+        toolsToUnlock: "string[]" // e.g., ['fraction_bar', 'pen']
       }
     }
   ]
@@ -162,6 +169,30 @@ const geminiConfig = {
 ### 2.3 Hand-Drawn UI System
 
 ```typescript
+// Element ID System for Canvas Annotations
+// All interactive elements receive unique IDs for Gemini to target
+const elementIdSystem = {
+  // Pattern: {type}-{instance}-{subpart}
+  manipulatives: {
+    fractionBar: "fraction-bar-{id}",           // e.g., "fraction-bar-1"
+    pizza: "pizza-{id}",                        // e.g., "pizza-1"
+    pizzaSlice: "pizza-{id}-slice-{index}",     // e.g., "pizza-1-slice-3"
+    numberLine: "number-line-{id}",             // e.g., "number-line-1"
+    numberLinePoint: "number-line-{id}-point-{value}" // e.g., "number-line-1-point-0.5"
+  },
+  
+  canvasElements: {
+    studentDrawing: "drawing-{timestamp}",       // e.g., "drawing-1234567890"
+    studentText: "text-{timestamp}",            // e.g., "text-1234567890"
+  },
+  
+  // Elements are registered when created
+  registerElement: (element, id) => {
+    element.setAttribute('data-element-id', id)
+    elementRegistry.set(id, element)
+  }
+}
+
 // rough.js Configuration for Warm, Approachable UI
 import rough from 'roughjs/bundled/rough.esm.js'
 
@@ -186,6 +217,58 @@ const uiConfig = {
 
 // Components with hand-drawn aesthetic
 const HandDrawnComponents = {
+  // Main canvas component with three act modes
+  UnifiedCanvas: ({ act, children }) => {
+    const canvasMode = {
+      act1: 'spotlight',    // Dimmed with central focus
+      act2: 'workbench',    // Full tools and manipulatives
+      act3: 'showcase'      // Clean display of final work
+    }[act]
+    
+    return (
+      <div className={`unified-canvas ${canvasMode}-mode`}>
+        <Canvas 
+          dimmed={act === 'act1'}
+          toolsVisible={act === 'act2'}
+          showcaseMode={act === 'act3'}
+        />
+        {children}
+      </div>
+    )
+  },
+  
+  // Pi character component with voice state
+  PiCharacter: ({ isListening, isSpeaking }) => {
+    const rc = rough.svg(svg)
+    // Animated circle character
+    const piCircle = rc.circle(cx, cy, radius, {
+      fill: colors.primary,
+      fillStyle: 'solid',
+      roughness: isListening ? 1.8 : 1.2,
+      bowing: isSpeaking ? 2 : 1
+    })
+    
+    // Pulsing animation when active
+    if (isListening || isSpeaking) {
+      piCircle.animate({
+        scale: [1, 1.1, 1],
+        duration: 1000
+      })
+    }
+    
+    return piCircle
+  },
+  
+  // Voice input component with visual feedback
+  VoiceInput: ({ isActive, onTranscript }) => {
+    return (
+      <div className="voice-input">
+        <AudioWaveform active={isActive} />
+        <TranscriptDisplay />
+      </div>
+    )
+  },
+  
   // Reasoning step bubbles
   ReasoningBubble: ({ step, classification }) => {
     const rc = rough.svg(svg)
@@ -197,14 +280,16 @@ const HandDrawnComponents = {
     })
   },
   
-  // Math manipulatives
-  FractionBar: ({ parts, filled }) => {
+  // Math manipulatives with unique IDs
+  FractionBar: ({ id, parts, filled }) => {
     const rc = rough.canvas(canvas)
-    // Main rectangle
-    rc.rectangle(x, y, width, height, {
+    // Main rectangle with data-element-id for annotation targeting
+    const bar = rc.rectangle(x, y, width, height, {
       roughness: 1.2,
       fill: 'transparent'
     })
+    bar.setAttribute('data-element-id', `fraction-bar-${id}`)
+    
     // Dividing lines (wonky on purpose)
     for (let i = 1; i < parts; i++) {
       rc.line(
@@ -215,17 +300,27 @@ const HandDrawnComponents = {
         { roughness: 1.5, bowing: 0.5 }
       )
     }
+    
+    return bar
   },
   
-  // Pizza visual
-  Pizza: ({ slices = 8 }) => {
+  // Pizza visual with identifiable slices
+  Pizza: ({ id, slices = 8 }) => {
     const rc = rough.canvas(canvas)
     // Rough circle for pizza
-    rc.circle(cx, cy, diameter, {
+    const pizza = rc.circle(cx, cy, diameter, {
       fill: '#FFA500',
       fillStyle: 'solid',
       roughness: 1.8
     })
+    pizza.setAttribute('data-element-id', `pizza-${id}`)
+    
+    // Each slice gets an ID for annotation
+    for (let i = 0; i < slices; i++) {
+      const slice = drawSlice(i, slices)
+      slice.setAttribute('data-element-id', `pizza-${id}-slice-${i}`)
+    }
+    
     // Pepperoni with hand-drawn circles
     pepperoniPositions.forEach(pos => {
       rc.circle(pos.x, pos.y, 20, {
@@ -234,289 +329,88 @@ const HandDrawnComponents = {
         roughness: 1
       })
     })
+    
+    return pizza
   }
 }
 ```
 
 ---
 
-## 3. Core Features Implementation
+3. The Three-Act User Experience
+The core learning experience in Simili is structured around a dynamic, three-act flow that is orchestrated by the AI tutor. The UI transforms at each stage to support the pedagogical goal.
 
-### 3.1 Reasoning Map Visualization
+3.1 Act 1: The Spotlight (Wondering)
+The goal is to spark curiosity and elicit a verbal plan. The UnifiedCanvas is in "Spotlight" mode.
 
+UI State: The canvas is dimmed, with a single visual hook in the center. No tools or manipulatives are visible.
+
+Interaction: The PiCharacter delivers the "Notice & Wonder" prompt. The system uses VoiceInput to listen. The set_lesson_act tool has not been called yet.
+
+3.2 Act 2: The Workbench (Solving)
+The goal is to explore, manipulate, and solve. The AI calls set_lesson_act({ act: 'act2', toolsToUnlock: [...] }) to trigger this state.
+
+UI State: The UI animates into "Workbench" mode. The visual hook moves to a corner for reference. The specific, relevant manipulatives (e.g., FractionBar, NumberLine) and basic tools appear on the canvas.
+
+Interaction: The student uses their voice and the unlocked tools to solve the problem. Gemini Vision receives canvas state updates. The AI uses the annotate_canvas tool (with targetElementId) to provide guidance by drawing directly on the canvas.
+
+3.3 Act 3: The Showcase (Synthesizing)
+The goal is to reflect on and solidify the learning. The AI calls set_lesson_act({ act: 'act3' }) to trigger this state.
+
+UI State: The canvas clears to "Showcase" the student's final work. All tools disappear.
+
+Interaction: PiCharacter guides the student to explain their solution. It introduces formal vocabulary, and the student re-explains their learning.
+
+## 4. Development Phases
+
+### 4.1 Phase v0: Core Loop with Three-Act Structure (3 weeks)
+
+#### Week 1: Foundation + Act 1 (The Spotlight)
 ```typescript
-interface ReasoningMap {
-  // Visual representation of thinking journey
-  display: 'timeline' | 'tree' | 'constellation'
-  
-  // Each step captured by Gemini's tool calls
-  steps: Array<{
-    id: string
-    timestamp: number
-    transcript: string  // What student said
-    classification: 'correct' | 'partial' | 'incorrect' | 'exploring'
-    visual: {
-      bubble: RoughSVGElement  // Hand-drawn bubble
-      connector: RoughSVGElement // Sketchy line to next step
-      animation: 'draw-in' | 'pulse' | 'celebrate'
-    }
-    canvasSnapshot: string
-    concepts: MathConcept[]
-  }>
-  
-  // Branching for multiple strategies
-  branches: Array<{
-    fromStep: string
-    toStep: string
-    type: 'alternative' | 'revision' | 'backtrack'
-  }>
-  
-  // Celebrations for productive struggle
-  celebrations: Array<{
-    stepId: string
-    type: 'mistake_learning' | 'persistence' | 'creativity'
-    animation: RoughAnimation
-  }>
-}
-
-// Rendering with rough.js
-class ReasoningMapRenderer {
-  renderStep(step: ReasoningStep) {
-    const rc = rough.svg(this.svg)
-    
-    // Draw thought bubble with hand-drawn feel
-    const bubble = rc.ellipse(
-      step.x, step.y, 
-      step.width, step.height,
-      {
-        fill: this.getColorForClassification(step.classification),
-        fillStyle: 'solid',
-        fillWeight: 0.5,
-        roughness: 1.5,
-        bowing: 2
-      }
-    )
-    
-    // Add sketchy connector to next step
-    if (step.next) {
-      const connector = rc.curve(
-        step.points,
-        {
-          roughness: 1.2,
-          strokeWidth: 2,
-          stroke: '#6B7280'
-        }
-      )
-    }
-    
-    // Celebration animation for mistakes
-    if (step.classification === 'incorrect') {
-      this.celebrateMistake(step)
-    }
-  }
-  
-  celebrateMistake(step) {
-    // Growing flower animation around mistake
-    const flower = rc.circle(step.x, step.y, 0, {
-      stroke: '#F59E0B',
-      strokeWidth: 3,
-      roughness: 2
-    })
-    
-    // Animate growth
-    anime({
-      targets: flower,
-      r: [0, 30],
-      opacity: [1, 0],
-      duration: 1000,
-      easing: 'easeOutElastic'
-    })
-  }
-}
-```
-
-### 3.2 Interactive Canvas with Manipulatives
-
-```typescript
-class SimiliCanvas {
-  constructor() {
-    this.tldraw = new Tldraw({
-      // Custom tools with hand-drawn rendering
-      tools: [
-        HandDrawnPenTool,
-        FractionBarTool,
-        NumberLineTool,
-        DividerTool
-      ],
-      
-      // Override default rendering with rough.js
-      shapeUtils: {
-        renderShape: (shape) => {
-          return this.renderWithRough(shape)
-        }
-      },
-      
-      // Warm paper background
-      background: '#FFFEF7'
-    })
-    
-    // Send canvas state to Gemini on change
-    this.tldraw.on('change', debounce((state) => {
-      this.sendCanvasContext(state)
-    }, 500))
-  }
-  
-  async sendCanvasContext(state) {
-    // Convert canvas to image for Gemini's vision
-    const snapshot = await this.tldraw.getSnapshot()
-    
-    // Send to Gemini Live
-    await geminiLive.sendImage(snapshot, {
-      context: "Student's current work on the problem"
-    })
-  }
-  
-  renderWithRough(shape) {
-    const rc = rough.canvas(this.canvas)
-    
-    switch(shape.type) {
-      case 'pen':
-        // Student's drawing with sketchy line
-        rc.path(shape.points, {
-          roughness: 0.8,
-          strokeWidth: 3,
-          stroke: shape.color
-        })
-        break
-        
-      case 'fraction_bar':
-        // Hand-drawn fraction representation
-        this.drawFractionBar(rc, shape)
-        break
-        
-      case 'pi_annotation':
-        // Pi's hints in different color/style
-        rc.path(shape.points, {
-          roughness: 1.5,
-          strokeWidth: 2,
-          stroke: '#4F46E5',
-          strokeLineDash: [5, 5]
-        })
-        break
-    }
-  }
-}
-```
-
-### 3.3 Session Recording & Replay
-
-```typescript
-class SessionRecorder {
-  private events: SessionEvent[] = []
-  
-  constructor(private geminiLive: GeminiLive) {
-    // Record all Gemini tool calls
-    geminiLive.on('tool_called', (tool, params) => {
-      this.events.push({
-        type: 'tool_call',
-        timestamp: Date.now(),
-        tool,
-        params
-      })
-    })
-    
-    // Record canvas changes
-    canvas.on('change', (state) => {
-      this.events.push({
-        type: 'canvas_change',
-        timestamp: Date.now(),
-        state
-      })
-    })
-    
-    // Record audio (optional, for replay)
-    geminiLive.on('audio_chunk', (chunk) => {
-      this.events.push({
-        type: 'audio',
-        timestamp: Date.now(),
-        chunk
-      })
-    })
-  }
-  
-  async replay(speed = 1) {
-    // Replay events in sequence
-    for (const event of this.events) {
-      switch(event.type) {
-        case 'tool_call':
-          // Replay reasoning step appearing
-          this.replayToolCall(event)
-          break
-          
-        case 'canvas_change':
-          // Replay canvas drawing
-          this.replayCanvasChange(event)
-          break
-          
-        case 'audio':
-          // Replay conversation (optional)
-          this.replayAudio(event)
-          break
-      }
-      
-      // Wait based on timestamp difference
-      await this.wait(event.nextDelay / speed)
-    }
-  }
-}
-```
-
----
-
-## 4. Development Phases (Simplified)
-
-### 4.1 Phase v0: Core Loop (3 weeks)
-
-#### Week 1: Gemini Live Integration + Hand-drawn UI
-```typescript
-Sprint 0.1: Foundation
+Sprint 0.1: Core Setup + Act 1
 □ Next.js project with TypeScript
-□ Gemini Live 2.0 integration
-□ rough.js setup for UI components
-□ Hand-drawn button, panel, bubble components
-□ Pi personality configuration
-□ Single pizza fraction problem
+□ Gemini Live 2.0 integration with system prompt
+□ rough.js setup for hand-drawn UI components
+□ Implement state management for three acts (Zustand)
+□ Build UnifiedCanvas component with "Spotlight" mode
+□ PiCharacter component with voice introduction
+□ VoiceInput component for student responses
+□ Single pizza fraction problem setup
 
-Deliverable: Can have math conversation with Pi
-Test: Voice interaction works, UI feels approachable
+Deliverable: Functional Act 1 - "Notice & Wonder" conversation
+Test: Students can verbally explore the problem, UI dimmed appropriately
 ```
 
-#### Week 2: Canvas + Tool Integration
+#### Week 2: Act 2 (The Workbench) + Multimodal
 ```typescript
-Sprint 0.2: Multimodal Integration
+Sprint 0.2: Act 2 + Canvas Integration
+□ Implement set_lesson_act tool function
+□ Build "Workbench" mode for UnifiedCanvas
 □ tldraw canvas with rough.js rendering
-□ Fraction bar manipulative (hand-drawn)
-□ Pizza visual with rough.js
-□ Send canvas snapshots to Gemini
-□ Implement tool functions for reasoning capture
-□ Basic reasoning step display
+□ Dynamic tool unlocking (fraction bar, pizza visual)
+□ Canvas element ID system for annotations
+□ Send canvas snapshots to Gemini Vision
+□ Implement annotate_canvas with targetElementId
+□ Basic reasoning step capture via tool calls
 
-Deliverable: Gemini can see and comment on canvas
-Test: Tool calls trigger UI updates correctly
+Deliverable: Functional Act 2 with voice-unlocked tools
+Test: Gemini can see canvas, tools appear on command
 ```
 
-#### Week 3: Reasoning Map MVP
+#### Week 3: Act 3 (The Showcase) + Reasoning Map
 ```typescript
-Sprint 0.3: Visualization
+Sprint 0.3: Act 3 + Visualization
+□ Build "Showcase" mode for UnifiedCanvas
+□ Implement Act 3 transition (clear tools, highlight work)
 □ Reasoning map with hand-drawn bubbles
-□ Connect Gemini tool calls to map
-□ Step classification visualization
+□ Connect all Gemini tool calls to map visualization
+□ Step classification with growth mindset visuals
 □ Mistake celebration animations
-□ Session recording to localStorage
-□ Basic replay functionality
+□ Session recording with act transitions
+□ Basic replay showing three-act journey
 
-Deliverable: Complete problem with reasoning map
-Test: 5 students complete pizza problem, map captures journey
+Deliverable: Complete three-act problem with reasoning map
+Test: 5 students complete full journey, map captures all acts
 ```
 
 ### 4.2 Phase v1: Enhanced Intelligence (4 weeks)

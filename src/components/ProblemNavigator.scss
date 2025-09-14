@@ -1,0 +1,127 @@
+@import '../styles/variables';
+
+.problem-navigator {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 15px 25px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  z-index: 100;
+  
+  .problem-info {
+    text-align: center;
+    
+    .problem-counter {
+      font-size: 12px;
+      color: #718096;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .problem-title {
+      margin: 4px 0 0;
+      font-size: 16px;
+      color: #2d3748;
+      font-weight: 600;
+    }
+  }
+  
+  .problem-progress {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    
+    .progress-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      transition: all 0.3s ease;
+      
+      &.active {
+        width: 24px;
+        border-radius: 12px;
+        background: #4299e1;
+      }
+      
+      &.completed {
+        background: #48bb78;
+      }
+    }
+  }
+  
+  .navigation-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    
+    .nav-button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: 'Comic Sans MS', cursive;
+      
+      &.previous {
+        background: #f7fafc;
+        color: #4a5568;
+        
+        &:hover:not(:disabled) {
+          background: #e2e8f0;
+        }
+        
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+      
+      &.next {
+        background: #4299e1;
+        color: white;
+        
+        &:hover {
+          background: #3182ce;
+          transform: translateX(2px);
+        }
+      }
+      
+      &.finish {
+        background: #48bb78;
+        color: white;
+        padding: 10px 24px;
+        
+        &:hover {
+          background: #38a169;
+          transform: scale(1.05);
+        }
+      }
+    }
+  }
+  
+  // Mobile responsiveness
+  @media (max-width: 768px) {
+    width: calc(100% - 40px);
+    max-width: 400px;
+    
+    .navigation-buttons {
+      width: 100%;
+      
+      .nav-button {
+        flex: 1;
+      }
+    }
+  }
+}

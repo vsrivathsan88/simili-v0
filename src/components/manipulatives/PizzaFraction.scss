@@ -1,0 +1,66 @@
+@import '../../config/variables';
+
+.pizza-fraction {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  
+  svg {
+    cursor: pointer;
+  }
+  
+  .pizza-base {
+    fill: #FFA500;
+  }
+  
+  .pizza-slice {
+    fill: #FFA500;
+    stroke: #D2691E;
+    stroke-width: 2;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      fill: #FFB52E;
+    }
+    
+    &.eaten {
+      fill: #F5F5F5;
+      opacity: 0.5;
+      
+      &::after {
+        content: '✗';
+        position: absolute;
+        font-size: 24px;
+        color: #FF6B6B;
+      }
+    }
+  }
+  
+  .pizza-crust {
+    stroke: #D2691E;
+    stroke-width: 3;
+  }
+  
+  .pizza-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    
+    .fraction {
+      font-size: 24px;
+      font-weight: 600;
+      color: #4F46E5;
+    }
+    
+    .label {
+      font-size: 14px;
+      color: #718096;
+    }
+  }
+}

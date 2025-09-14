@@ -142,3 +142,8 @@ client.sendRealtimeInput([
 - Limited to Gemini Live API availability
 - Canvas performance on low-end devices
 - No collaborative features yet
+
+### Gemini Live Documentation
+ALWAYS ALWAYS ALWAYS refer to real documentation on the internet about Gemini Live from official sources like: https://ai.google.dev/gemini-api/docs/live
+
+We need to use the latest Gemini-2.5 family of models, and ensure we adhere to half cascade audio setup
