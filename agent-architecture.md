@@ -295,3 +295,44 @@ describe('CountingAgent', () => {
 ## Key Insight
 
 The fundamental shift is from trying to make Pi "smart" through one massive prompt, to making the **system** smart through coordinated agents. Pi just needs to be a friendly voice - the agents handle the pedagogical intelligence.
+
+## ADK-Orchestrated Runtime (Server) — Migration Plan
+
+### Goals
+- Keep TS frontend agents/orchestrator logic as “policy”; move runtime (voice BIDI, turn-taking, tool dispatch, vision fan-in) into an ADK server
+- Preserve strict schemas; define JSON tool contracts mirrored as ADK tools
+
+### Components
+- ADK Agent (Python)
+  - Foundational agent → adds tools for: set_lesson_act, annotate_canvas, mark_reasoning_step, flag_misconception, suggest_hint, celebrate_exploration
+  - RunConfig uses BIDI streaming; asyncio.TaskGroup for receive/send/think
+- WS Bridge (server)
+  - Accepts `{type: 'audio'|'text'|'vision'|'event'}` from browser
+  - Emits `{type: 'audio'|'text'|'tool'}` to browser
+  - Vision buffer maintains latest problem/canvas frames for agent context
+- Frontend
+  - `adkClient` sends mic audio (future), text and vision; listens for audio/text/tool events
+  - Tool events call existing TS handlers to update UI (three‑act, reasoning map, annotations)
+
+### Schema Mapping (ADK ⇄ TS)
+- One‑to‑one mapping of tool payloads (zod in TS; pydantic/dataclass in Python)
+- Version field `v1` in messages; additive changes only
+
+### Flow
+1. Browser connects WS; sends initial problem + blank canvas images
+2. User speaks; browser streams audio (phase 2) or pushes interim transcripts (phase 1)
+3. ADK agent replies with audio/text and tool calls
+4. Frontend applies tool calls; sends periodic vision frames
+
+### Incremental Milestones
+- M1: Text‑only BIDI (echo → agent response)
+- M2: Tool calls for three‑act + annotate + reasoning step
+- M3: Vision context integration and throttling
+- M4: Audio streaming + barge‑in
+
+### Testing
+- Contract tests for tool payloads (TS/py cross‑validation)
+- E2E script: select lesson → Act 1 → ADK set_lesson_act → Act 2 drawing → annotate_canvas event
+
+### Rollback
+- Feature flag `REACT_APP_USE_ADK`; Live client remains as fallback

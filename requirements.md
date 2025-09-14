@@ -898,3 +898,65 @@ const v1Tests = {
 - **Teacher Value**: 4.5/5 teacher satisfaction score
 
 
+## 11. ADK Migration Plan (Serverized AI with Gemini Live)
+
+### 11.1 Direction
+- Keep React + TypeScript frontend (canvas, manipulatives, UI state, reasoning viz)
+- Move AI runtime to a server using Gemini ADK (Python) for: voice BIDI streaming, turn-taking, interruption, tool orchestration, and vision fan‑in
+- Communicate via a thin WebSocket bridge (browser ↔ ADK server) for audio/text/events
+
+### 11.2 Target Architecture (Incremental)
+- Frontend (kept):
+  - React TS app, tldraw + rough.js, Three‑Act UI, reasoning map viz
+  - Minimal transport client for ADK WS (flagged by `REACT_APP_USE_ADK`)
+  - Send: problem image, canvas snapshots, UI events; Receive: Pi speech/text, tool calls
+- ADK Server (new):
+  - Foundational agent (no tools) → Advanced agent (tools + MCP if needed)
+  - Concurrency via asyncio.TaskGroup for listen/think/speak loops
+  - Tool adapters that forward to our TS UI contracts (below)
+  - Vision: accept problem + canvas frames; maintain last‑best frame; throttle/merge
+
+### 11.3 Contracts (Stable, Versioned)
+- WebSocket messages (JSON):
+  - Client→Server: `{ type: 'audio'|'text'|'vision'|'event', data: <payload> }`
+  - Server→Client: `{ type: 'audio'|'text'|'tool', data: <payload> }`
+- Tool call mapping (ADK → UI):
+  - `mark_reasoning_step({ transcript, classification, concepts, confidence })`
+  - `flag_misconception({ type, evidence, severity })`
+  - `suggest_hint({ level, content })`
+  - `celebrate_exploration({ message, animation })`
+  - `annotate_canvas({ type, targetElementId, message })`
+  - `set_lesson_act({ act, toolsToUnlock })`
+- Vision input:
+  - `{ type: 'vision', data: { problemImageBase64, canvasImageBase64, ts } }`
+
+### 11.4 Milestones (Small, Tested)
+- M0: POC (echo + latency) [done in adk-poc]
+- M1: BIDI voice + transcript (no tools)
+  - Accept mic audio, stream to ADK, receive Pi audio+text
+  - Measure latency, barge‑in, recovery
+- M2: Tool call bridge (UI only)
+  - Implement 3 tools: `set_lesson_act`, `annotate_canvas`, `mark_reasoning_step`
+  - Prove three‑act flow end‑to‑end without Live client
+- M3: Vision sync
+  - Throttle canvas/problem frames; ADK agent references images in guidance
+- M4: Reliability + fallbacks
+  - Queueing, reconnection, circuit‑breaker to Live client
+
+### 11.5 Acceptance Criteria
+- Latency (ADK vs current): p50 <= +50ms, p95 <= +150ms on local/staging
+- Interrupts: user barge‑in cancels/overrides ongoing speech within 250ms
+- Tool accuracy: ADK tool calls match current orchestration in 95% scripted cases
+- Vision guidance: ADK uses latest vision frame within 1.5s budget
+
+### 11.6 Risks & Mitigations
+- Server ops complexity → start single service; add health checks + simple logs
+- Cost of audio streaming → compress, optional local TTS in dev
+- Schema drift → pin JSON schemas and version messages (e.g., `v1` field)
+
+### 11.7 Env & Ops
+- Frontend flags: `REACT_APP_USE_ADK`, `REACT_APP_ADK_WS_URL`
+- Server env: `GOOGLE_API_KEY`, optional `VOICE_NAME`
+- Staging URL for ADK WS; CI smoke test pings RTT and exercises a tool call
+
+
