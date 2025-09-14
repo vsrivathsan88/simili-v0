@@ -34,6 +34,7 @@ import ProblemNavigator from './components/ProblemNavigator';
 import { lessons, getProblem } from './config/lessonStructure';
 import { useGeminiClientEvents } from './hooks/useGeminiClientEvents';
 import { useLessonManager } from './hooks/useLessonManager';
+import ConnectionBanner from './components/ConnectionBanner';
 import './App.scss';
 // Import the JPEG once you've saved it
 // import legoBlocksJpg from './assets/lego-blocks.jpg';
@@ -654,6 +655,7 @@ The student is viewing the LEGO blocks problem.`
       </header>
 
       <main className="simili-main">
+        <ConnectionBanner />
         {!selectedLesson && !showTransition ? (
           <LessonHomepage onLessonSelect={handleLessonSelect} />
         ) : showTransition ? (
@@ -691,8 +693,8 @@ The student is viewing the LEGO blocks problem.`
                       onRemove={() => handleManipulativeRemove(manipulative.id)}
                     />
                   ))}
+                </div>
               </div>
-            </div>
 
               {/* Floating Toolbar */}
               <FloatingToolbar

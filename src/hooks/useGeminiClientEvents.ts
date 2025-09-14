@@ -6,6 +6,7 @@ import { lessons, getProblem } from '../config/lessonStructure';
 import { piOrchestrator } from '../lib/piOrchestrator';
 import { reliabilityLayer } from '../lib/reliability/reliabilityLayer';
 import { handleToolCall } from '../lib/toolImplementations';
+import { useConnectionStore } from '../stores/connectionStore';
 
 export interface SessionState {
   hasIntroduced: boolean;
@@ -62,6 +63,8 @@ export function useGeminiClientEvents({
     const handleOpen = () => {
       console.log('Connected to Gemini Live');
       (window as any).geminiConnected = true;
+      // Update connection store
+      try { useConnectionStore.getState().setConnected(); } catch {}
 
       systemMonitor.log({
         type: 'info',
@@ -128,6 +131,8 @@ Then ask the follow-up question. Remember: You're not a teacher, you're a curiou
       });
 
       (window as any).geminiConnected = false;
+      // Mark reconnecting immediately
+      try { useConnectionStore.getState().setReconnecting(); } catch {}
 
       systemMonitor.log({
         type: 'warning',
@@ -148,6 +153,7 @@ Then ask the follow-up question. Remember: You're not a teacher, you're a curiou
             console.log('Attempting automatic reconnection...');
             connectWithRetryRef.current().catch(error => {
               console.error('Auto-reconnection failed:', error);
+              try { useConnectionStore.getState().setError(error?.message); } catch {}
             });
           }
         }, 2000);
@@ -156,6 +162,7 @@ Then ask the follow-up question. Remember: You're not a teacher, you're a curiou
 
     const handleError = (error: any) => {
       console.error('Gemini Live error:', error);
+      try { useConnectionStore.getState().setError(error?.message); } catch {}
     };
 
     const handleSetupComplete = () => {
