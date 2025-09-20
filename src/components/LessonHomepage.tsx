@@ -1,5 +1,6 @@
 import React from 'react';
 import './LessonHomepage.scss';
+import { ADVENTURES, Adventure } from '../config/adventures';
 
 interface Lesson {
   id: string;
@@ -10,6 +11,7 @@ interface Lesson {
   image: string;
   active: boolean;
   description: string;
+  adventure?: Adventure;
 }
 
 interface LessonHomepageProps {
@@ -17,16 +19,18 @@ interface LessonHomepageProps {
 }
 
 const LessonHomepage: React.FC<LessonHomepageProps> = ({ onLessonSelect }) => {
+  // Convert adventures to lessons, prioritizing our narrative-driven fractions lesson
   const lessons: Lesson[] = [
     {
-      id: 'intro-fractions',
-      title: 'Parts & Wholes',
-      subtitle: 'Share pizza like a pro! 🍕',
-      grade: 'Grade 3',
-      unit: 'Unit 5',
-      image: '🍕',
+      id: 'fractions-bakery',
+      title: "Pi's Magic Bakery",
+      subtitle: 'Help Pi share star-cookies with cloud friends! 🌟',
+      grade: 'Grade 2-4',
+      unit: 'Fractions',
+      image: '🍪',
       active: true,
-      description: 'Pizza time! Learn by playing with yummy treats!'
+      description: 'Join Pi in a magical cloud bakery adventure!',
+      adventure: ADVENTURES.find(a => a.id === 'fractions-bakery')
     },
     {
       id: 'equivalent-fractions',
@@ -44,7 +48,7 @@ const LessonHomepage: React.FC<LessonHomepageProps> = ({ onLessonSelect }) => {
       subtitle: 'Be a detective! 🕵️',
       grade: 'Grade 3',
       unit: 'Unit 5',
-      image: '🍪',
+      image: '🔍',
       active: false,
       description: 'Which piece wins? You decide!'
     },
@@ -57,26 +61,6 @@ const LessonHomepage: React.FC<LessonHomepageProps> = ({ onLessonSelect }) => {
       image: '📏',
       active: false,
       description: 'Every number has its secret hiding spot!'
-    },
-    {
-      id: 'unit-fractions',
-      title: 'Special One-Pieces',
-      subtitle: 'Like LEGO blocks! 🧱',
-      grade: 'Grade 3',
-      unit: 'Unit 5',
-      image: '🧱',
-      active: false,
-      description: 'The super important building blocks!'
-    },
-    {
-      id: 'fraction-word-problems',
-      title: 'Real-Life Stories',
-      subtitle: 'Math everywhere! 🌍',
-      grade: 'Grade 3',
-      unit: 'Unit 5',
-      image: '📝',
-      active: false,
-      description: 'Math is hiding all around us!'
     }
   ];
 
@@ -93,11 +77,12 @@ const LessonHomepage: React.FC<LessonHomepageProps> = ({ onLessonSelect }) => {
           <div className="pi-introduction">
             <div className="pi-character">
               <div className="pi-avatar">
-                <img src="/assets/pi-character.png" alt="Pi, your learning companion" className="pi-character-img" />
+                <img src="/assets/pi-intro-waving.png" alt="Pi, your adventure buddy" className="pi-character-img" />
                 <div className="pi-sparkles">✨</div>
               </div>
               <div className="pi-speech-bubble">
-                <p>👋 Hi! I am Pi!</p>
+                <p>👋 Hey! I'm Pi, and I LOVE adventures!</p>
+                <p className="pi-invite">Want to explore something amazing together?</p>
               </div>
             </div>
           </div>
@@ -110,20 +95,20 @@ const LessonHomepage: React.FC<LessonHomepageProps> = ({ onLessonSelect }) => {
             
             <div className="lesson-hero-content">
               <div className="lesson-meta-small">
-                <span className="lesson-number-badge">🎯 1</span>
-                <span className="lesson-subtitle">✨ {currentLesson.subtitle}</span>
+                <span className="adventure-badge">🌟 Adventure</span>
+                <span className="lesson-subtitle">{currentLesson.subtitle}</span>
               </div>
-              
+
               <h1 className="lesson-hero-title">{currentLesson.title}</h1>
-              <div className="confidence-boost">💪 You've got this!</div>
+              <div className="adventure-description">{currentLesson.description}</div>
               
               <div className="lesson-hero-actions">
-                <button 
-                  className="start-lesson-btn" 
+                <button
+                  className="start-adventure-btn"
                   onClick={() => onLessonSelect(currentLesson.id)}
                 >
-                  <span className="btn-icon">🚀</span>
-                  Let's Go!
+                  <span className="btn-icon">🍪</span>
+                  Start Adventure with Pi
                   <span className="btn-sparkle">✨</span>
                 </button>
                 <div className="lesson-duration-info">
@@ -138,7 +123,8 @@ const LessonHomepage: React.FC<LessonHomepageProps> = ({ onLessonSelect }) => {
       {/* Other Lessons - Below the fold */}
       <div className="other-lessons-section">
         <div className="other-lessons-header">
-          <h2>🌟 More Adventures!</h2>
+          <h2>🌟 More Adventures Coming Soon!</h2>
+          <p className="adventures-subtitle">Pi is preparing more magical places to explore...</p>
         </div>
 
         <div className="other-lessons-grid">

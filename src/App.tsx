@@ -6,6 +6,8 @@ import { designSystem } from './config/designSystem';
 import { VoiceInput } from './components/VoiceInput';
 import UnifiedCanvas from './components/UnifiedCanvas';
 import ProblemDisplay from './components/ProblemDisplay';
+import BakeryProblemDisplay from './components/BakeryProblemDisplay';
+import { getAdventureById } from './config/adventures';
 import TeacherPanel from './components/TeacherPanel';
 import VoicePermissionModal from './components/VoicePermissionModal';
 import LessonHomepage from './components/LessonHomepage';
@@ -327,7 +329,20 @@ function SimiliApp() {
   };
 
   const handleLessonSelect = (lessonId: string) => {
-    console.log('Lesson selected:', lessonId);
+    console.log('Adventure selected:', lessonId);
+
+    // Check if it's one of our narrative adventures
+    const adventure = getAdventureById(lessonId);
+    if (adventure) {
+      console.log('Found adventure:', adventure);
+      setTransitionLesson(adventure.title);
+      setShowTransition(true);
+      setIsManualDisconnect(false);
+      console.log('Starting transition for adventure:', adventure.title);
+      return;
+    }
+
+    // Fallback for legacy lessons
     const lessons = [
       { id: 'intro-fractions', title: 'Parts & Wholes' },
       { id: 'equivalent-fractions', title: 'Same Amount, Different Ways' },
@@ -336,7 +351,7 @@ function SimiliApp() {
       { id: 'unit-fractions', title: 'Special One-Pieces' },
       { id: 'fraction-word-problems', title: 'Real-Life Stories' }
     ];
-    
+
     const lesson = lessons.find(l => l.id === lessonId);
     console.log('Found lesson:', lesson);
     setTransitionLesson(lesson?.title || 'Math Adventures');
@@ -573,7 +588,8 @@ function SimiliApp() {
 
       <LessonEntryPopup
         isOpen={showLessonEntry}
-        lessonTitle={transitionLesson}
+        adventureTitle={transitionLesson}
+        adventureDescription={getAdventureById(selectedLesson || '')?.description || 'Join Pi on an amazing adventure!'}
         onStart={handleLessonEntryStart}
         onCancel={handleLessonEntryCancel}
       />
