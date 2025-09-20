@@ -1,0 +1,441 @@
+@import '../config/variables';
+
+.adventure-experience {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+
+  &.adventure-complete {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .completion-celebration {
+      background: linear-gradient(135deg, #FFFEF7 0%, #FFF9E6 100%);
+      border-radius: 32px;
+      padding: 60px 40px;
+      text-align: center;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.2);
+      border: 3px solid #10B981;
+      animation: celebrationBounce 1s ease-out;
+
+      h1 {
+        font-size: 48px;
+        font-weight: 800;
+        color: #10B981;
+        margin-bottom: 20px;
+        font-family: $hand-drawn-font;
+        animation: textBounce 0.8s ease-out 0.2s both;
+      }
+
+      p {
+        font-size: 20px;
+        color: #1F2937;
+        margin-bottom: 32px;
+        line-height: 1.6;
+      }
+
+      button {
+        background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+        color: white;
+        border: none;
+        border-radius: 16px;
+        padding: 16px 32px;
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+        font-family: $hand-drawn-font;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 32px rgba(16, 185, 129, 0.4);
+        }
+      }
+    }
+  }
+}
+
+// Act Transition Overlay
+.act-transition-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.5s ease-out;
+
+  .act-transition-content {
+    background: linear-gradient(135deg, #FFFEF7 0%, #FFF9E6 100%);
+    border-radius: 24px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
+    border: 3px solid #4ECDC4;
+    animation: slideInScale 0.6s ease-out;
+
+    h2 {
+      font-size: 32px;
+      font-weight: 800;
+      color: #1F2937;
+      margin-bottom: 12px;
+      font-family: $hand-drawn-font;
+    }
+
+    p {
+      font-size: 18px;
+      color: #374151;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .transition-animation {
+      font-size: 48px;
+      animation: sparkle 2s ease-in-out infinite;
+    }
+  }
+}
+
+// Header
+.adventure-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+
+  .progress-section {
+    flex: 1;
+    max-width: 400px;
+
+    .progress-bar {
+      width: 100%;
+      height: 12px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 8px;
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(135deg, #4ECDC4 0%, #6EE7DB 100%);
+        border-radius: 6px;
+        transition: width 0.8s ease;
+      }
+    }
+
+    .progress-text {
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+    }
+  }
+
+  .exit-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+  }
+}
+
+// Main Content
+.adventure-main {
+  flex: 1;
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-y: auto;
+}
+
+.problem-container {
+  background: linear-gradient(135deg, #FFFEF7 0%, #FFF9E6 100%);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  border: 3px solid #4ECDC4;
+  max-width: 900px;
+  width: 100%;
+  animation: slideUp 0.6s ease-out;
+
+  @media (max-width: 768px) {
+    padding: 24px;
+    border-radius: 20px;
+  }
+}
+
+.act-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+
+  .act-badge {
+    background: linear-gradient(135deg, #4ECDC4 0%, #6EE7DB 100%);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .problem-type {
+    background: rgba(78, 205, 196, 0.1);
+    color: #1F2937;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+}
+
+.problem-content {
+  .problem-title {
+    font-size: 32px;
+    font-weight: 800;
+    color: #1F2937;
+    margin-bottom: 12px;
+    font-family: $hand-drawn-font;
+    line-height: 1.2;
+
+    @media (max-width: 768px) {
+      font-size: 28px;
+    }
+  }
+
+  .problem-description {
+    font-size: 18px;
+    color: #374151;
+    line-height: 1.6;
+    margin-bottom: 32px;
+  }
+}
+
+// Workspace
+.problem-workspace {
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+  border: 3px dashed #4ECDC4;
+  border-radius: 16px;
+  padding: 40px;
+  margin-bottom: 32px;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .canvas-placeholder {
+    text-align: center;
+    max-width: 500px;
+
+    .pi-avatar {
+      margin-bottom: 24px;
+
+      .pi-image {
+        width: 100px;
+        height: 100px;
+        object-fit: contain;
+
+        &.talking {
+          animation: gentleBounce 2s ease-in-out infinite;
+        }
+      }
+    }
+
+    .workspace-content {
+      h3 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1F2937;
+        margin-bottom: 12px;
+        font-family: $hand-drawn-font;
+      }
+
+      p {
+        font-size: 16px;
+        color: #6B7280;
+        line-height: 1.6;
+        margin-bottom: 8px;
+      }
+
+      .pi-hint {
+        color: #4ECDC4;
+        font-weight: 600;
+        font-size: 14px;
+      }
+    }
+  }
+}
+
+// Problem Actions
+.problem-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+
+  button {
+    padding: 16px 24px;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    font-family: $hand-drawn-font;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  .wonder-btn {
+    background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
+    color: white;
+    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.3);
+
+    &:hover {
+      box-shadow: 0 12px 32px rgba(139, 92, 246, 0.4);
+    }
+  }
+
+  .hint-btn {
+    background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+    color: white;
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);
+
+    &:hover {
+      box-shadow: 0 12px 32px rgba(245, 158, 11, 0.4);
+    }
+  }
+
+  .canvas-btn {
+    background: linear-gradient(135deg, #EC4899 0%, #F472B6 100%);
+    color: white;
+    box-shadow: 0 8px 24px rgba(236, 72, 153, 0.3);
+
+    &:hover {
+      box-shadow: 0 12px 32px rgba(236, 72, 153, 0.4);
+    }
+  }
+
+  .explain-btn {
+    background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+    color: white;
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+
+    &:hover {
+      box-shadow: 0 12px 32px rgba(59, 130, 246, 0.4);
+    }
+  }
+
+  .complete-btn {
+    background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+    color: white;
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+
+    &:hover {
+      box-shadow: 0 12px 32px rgba(16, 185, 129, 0.4);
+    }
+  }
+}
+
+// Animations
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes celebrationBounce {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes textBounce {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gentleBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: rotate(180deg) scale(1.2);
+  }
+}
